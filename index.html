@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOON</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #1C1C1C;
+      --surface:      #2A2A2A;
+      --border:       #3D3D3D;
+      --text:         #EBEBEB;
+      --text-muted:   #777;
+      --accent:       #F0B429;
+      --cell-size:    68px;
+      --gap:          6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 480px;
+      padding: 24px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .puzzle-num {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .tagline {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      padding: 28px 16px;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--gap);
+    }
+
+    .row {
+      display: flex;
+      gap: var(--gap);
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      border: 2px solid var(--border);
+      border-radius: 4px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.65rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .cell.revealed {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Active row — cells being typed into */
+    .row.active .cell:not(.revealed) {
+      border-color: #666;
+    }
+
+    /* ── Feedback colors ── */
+    .cell.green  { background: #6AAA64; border-color: #6AAA64; color: #fff; }
+    .cell.yellow { background: #B59F3B; border-color: #B59F3B; color: #fff; }
+    .cell.gray   { background: #4A4A4A; border-color: #4A4A4A; color: #fff; }
+    .cell.reveal { background: #2F2F2F; border-color: #444; color: #666; }
+
+    /* ── Share button ── */
+    .share-btn {
+      margin-top: 14px;
+      padding: 10px 28px;
+      background: var(--accent);
+      color: #1C1C1C;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      touch-action: manipulation;
+    }
+    .share-btn:active { opacity: 0.75; }
+
+    /* ── Result panel ── */
+    .result {
+      text-align: center;
+    }
+    .result-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .result-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
+    }
+    .result[data-outcome="win"]  .result-title { color: #6AAA64; }
+    .result[data-outcome="lose"] .result-title { color: #E05A5A; }
+
+    /* ── Guess counter ── */
+    .guess-counter {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Countdown ── */
+    .countdown-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .countdown-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .countdown-timer {
+      font-size: 1.7rem;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Footer ── */
+    footer {
+      width: 100%;
+      max-width: 480px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: center;
+    }
+
+    footer span {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Header countdown ── */
+    .header-countdown {
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+    }
+    .header-countdown .countdown-time {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Result countdown ── */
+    .result-countdown {
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .result-next-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .result-next-time {
+      font-size: 1.9rem;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Typing pop ── */
+    @keyframes pop {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.12); }
+    }
+    .cell.pop { animation: pop 0.1s ease; }
+
+    /* ── Tile flip reveal ── */
+    .row { perspective: 300px; }
+    @keyframes flip-reveal {
+      0%   { transform: rotateX(0deg); }
+      50%  { transform: rotateX(-90deg); }
+      100% { transform: rotateX(0deg); }
+    }
+    .cell.flipping { animation: flip-reveal 0.5s ease; }
+
+    /* ── Keyboard letter states ── */
+    .kb-key.green  { background: #6AAA64; color: #fff; }
+    .kb-key.yellow { background: #B59F3B; color: #fff; }
+    .kb-key.gray   { background: #4A4A4A; color: #999; }
+
+    /* ── Responsive height ── */
+    @media (max-height: 680px) {
+      main { gap: 16px; padding: 16px; }
+      .keyboard { padding-bottom: 12px; }
+    }
+
+    /* ── Shake animation ── */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-7px); }
+      40%       { transform: translateX(7px); }
+      60%       { transform: translateX(-4px); }
+      80%       { transform: translateX(4px); }
+    }
+    .row.shake { animation: shake 0.35s ease; }
+
+    /* ── Toast message ── */
+    .message {
+      position: fixed;
+      top: 72px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .message.visible { opacity: 1; }
+
+    /* ── On-screen Keyboard ── */
+    .keyboard {
+      width: 100%;
+      max-width: 480px;
+      padding: 10px 8px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    .kb-row {
+      display: flex;
+      gap: 5px;
+      justify-content: center;
+    }
+
+    .kb-spacer { flex: 0.5; }
+
+    .kb-key {
+      flex: 1;
+      height: 44px;
+      min-width: 0;
+      border: none;
+      border-radius: 4px;
+      background: #333;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      transition: background 0.08s;
+    }
+
+    .kb-key:active { background: #555; }
+
+    .kb-wide {
+      flex: 1.5;
+      font-size: 1rem;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 360px) {
+      :root {
+        --cell-size: 58px;
+        --gap: 5px;
+      }
+      h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="message" id="message"></div>
+
+  <header>
+    <div class="header-row">
+      <h1>NOON</h1>
+      <span class="puzzle-num">#1</span>
+    </div>
+    <p class="tagline">One square. Once a day. Everyone.</p>
+    <p class="header-countdown">Next NOON in <span class="countdown-time">--:--:--</span></p>
+  </header>
+
+  <main>
+
+    <!--
+      Puzzle #1 word square:
+        C A R D
+        A R E A   ← revealed (most common word)
+        R E A D
+        D A D S
+      Rows = Columns (true word square)
+    -->
+    <div class="grid" id="grid">
+
+      <!-- Row 0: CARD — to be guessed -->
+      <div class="row" id="row-0">
+        <div class="cell" id="r0c0"></div>
+        <div class="cell" id="r0c1"></div>
+        <div class="cell" id="r0c2"></div>
+        <div class="cell" id="r0c3"></div>
+      </div>
+
+      <!-- Row 1: AREA — pre-revealed -->
+      <div class="row" id="row-1">
+        <div class="cell revealed" id="r1c0">A</div>
+        <div class="cell revealed" id="r1c1">R</div>
+        <div class="cell revealed" id="r1c2">E</div>
+        <div class="cell revealed" id="r1c3">A</div>
+      </div>
+
+      <!-- Row 2: READ — to be guessed -->
+      <div class="row" id="row-2">
+        <div class="cell" id="r2c0"></div>
+        <div class="cell" id="r2c1"></div>
+        <div class="cell" id="r2c2"></div>
+        <div class="cell" id="r2c3"></div>
+      </div>
+
+      <!-- Row 3: DADS — to be guessed -->
+      <div class="row" id="row-3">
+        <div class="cell" id="r3c0"></div>
+        <div class="cell" id="r3c1"></div>
+        <div class="cell" id="r3c2"></div>
+        <div class="cell" id="r3c3"></div>
+      </div>
+
+    </div>
+
+    <div class="guess-counter" id="guess-counter">GUESS 1 OF 5</div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-sub"   id="result-sub"></div>
+      <button class="share-btn" id="share-btn">Share result</button>
+      <div class="result-countdown">
+        <div class="result-next-label">Next NOON in</div>
+        <div class="result-next-time countdown-time">--:--:--</div>
+      </div>
+    </div>
+
+  </main>
+
+  <section class="keyboard" id="keyboard">
+    <div class="kb-row">
+      <button class="kb-key" data-key="Q">Q</button>
+      <button class="kb-key" data-key="W">W</button>
+      <button class="kb-key" data-key="E">E</button>
+      <button class="kb-key" data-key="R">R</button>
+      <button class="kb-key" data-key="T">T</button>
+      <button class="kb-key" data-key="Y">Y</button>
+      <button class="kb-key" data-key="U">U</button>
+      <button class="kb-key" data-key="I">I</button>
+      <button class="kb-key" data-key="O">O</button>
+      <button class="kb-key" data-key="P">P</button>
+    </div>
+    <div class="kb-row">
+      <div class="kb-spacer"></div>
+      <button class="kb-key" data-key="A">A</button>
+      <button class="kb-key" data-key="S">S</button>
+      <button class="kb-key" data-key="D">D</button>
+      <button class="kb-key" data-key="F">F</button>
+      <button class="kb-key" data-key="G">G</button>
+      <button class="kb-key" data-key="H">H</button>
+      <button class="kb-key" data-key="J">J</button>
+      <button class="kb-key" data-key="K">K</button>
+      <button class="kb-key" data-key="L">L</button>
+      <div class="kb-spacer"></div>
+    </div>
+    <div class="kb-row">
+      <button class="kb-key kb-wide" data-key="Enter">↵</button>
+      <button class="kb-key" data-key="Z">Z</button>
+      <button class="kb-key" data-key="X">X</button>
+      <button class="kb-key" data-key="C">C</button>
+      <button class="kb-key" data-key="V">V</button>
+      <button class="kb-key" data-key="B">B</button>
+      <button class="kb-key" data-key="N">N</button>
+      <button class="kb-key" data-key="M">M</button>
+      <button class="kb-key kb-wide" data-key="Backspace">⌫</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>NOON · Daily Word Square</span>
+  </footer>
+
+  <script>
+    const PUZZLE_NUM = 1;
+
+    // ── Word List ──
+    const WORDS = new Set(`
+      ABLE ABET ABUT ACED ACES ACHE ACID ACME ACNE ACRE ACTS ADDS ADZE AFAR AGED AGES
+      AIDE AIDS AIMS AIRS AIRY ALOE ALSO ALTO ALUM AMID AMMO AMOK AMPS ANEW ANON ANTE
+      ANTI ANTS APEX AQUA ARCH ARCS AREA ARIA ARID ARMS ARMY ARTS ARTY ASKS ATOP ATOM
+      AVID AVOW AWRY AXES AXIS AXLE AYES BABE BABY BACK BAIT BAKE BALE BALK BALL BALM
+      BAND BANE BANG BANK BANS BARB BARE BARK BARN BARS BASH BASK BATH BATS BAUD BAWL
+      BEAD BEAM BEAN BEAR BEAT BEDS BEEP BEER BEES BEET BELL BELT BEND BETS BIAS BIKE
+      BILL BIND BINS BIRD BITE BITS BLOB BLOC BLOT BLOW BLUE BLUR BOAR BOAT BODE BODY
+      BOLD BOLT BOND BONE BOOK BOOM BOON BOOR BORE BORN BOSS BOTH BOUT BRAT BREW BROW
+      BUCK BUFF BULB BULK BULL BUMP BUNK BUOY BURN BURP BURR BUST BUSY BUTT BUZZ CAFE
+      CAGE CAKE CALF CALL CALM CAME CAMP CANE CANT CAPE CARD CARE CARL CARP CART CASE
+      CASH CAST CAVE CELL CHAD CHAR CHAT CHEW CHIP CHOP CITE CLAN CLAP CLAW CLAY CLIP
+      CLOP CLOT CLUE COAL COAT COAX COCK CODA CODE COIL COIN COLA COLD COME CONE COOK
+      COOL COPE CORD CORE CORK CORN COST COUP COVE COZY CRAB CRAM CRAW CREW CROP CROW
+      CRUD CRUX CUBE CUFF CUPS CURB CURE CURL CURT CUTE CYAN DABS DACE DADS DAME DAMP
+      DARE DARK DARN DART DASH DAWN DAZE DEAD DEAF DEAL DEAN DEAR DEED DEEP DEEM DEER
+      DEFT DELI DELL DEMO DENT DENY DESK DEWS DIAL DICE DIKE DILL DINE DINT DIRE DIRT
+      DISC DISH DISK DIVE DOCK DOES DOGS DOLE DOME DONE DOOM DORM DOTE DOTS DOVE DOWN
+      DRAB DRAG DRAT DRAW DREW DRIP DROP DRUG DRUM DUAL DUBS DUCK DUDE DUEL DULL DULY
+      DUMB DUMP DUNE DUPE DUSK DUST DUTY EACH EARL EARN EASE EAST EASY EDGE EDIT EGGS
+      ELSE EMIT EPIC EVEN EVER EXAM EXPO EYED EYES FACE FACT FADE FADS FAIL FAIR FALL
+      FAME FANG FARE FARM FAST FATE FAUN FAWN FAUX FAZE FEAT FEED FEEL FEET FELL FELT
+      FEND FERN FEUD FIFE FILL FILM FIND FINE FINK FIRE FIRM FISH FIST FITS FIZZ FLAG
+      FLAT FLAW FLAY FLEA FLEW FLEX FLIP FLIT FLOG FLOW FLUX FOAL FOAM FOES FOLD FOLK
+      FOND FONT FORD FORE FORK FORM FORT FOUL FOUR FOWL FOXY FRAY FREE FROG FROM FUEL
+      FULL FUME FUND FUNK FURY FUSE FUSS GALA GALE GALL GAME GAPE GARB GATE GAVE GAZE
+      GEAR GEMS GILD GILL GIRL GIST GIVE GLAD GLEE GLEN GLIB GLOB GLOP GLOW GLUT GOAD
+      GOAT GOES GOLD GOLF GOOD GOON GORE GOWN GRAB GRAM GRAY GREW GRID GRIM GRIP GRIT
+      GUST GUTS GUYS HACK HAIL HAIR HALF HALL HALT HAND HANG HARD HARE HARM HARP HASH
+      HATE HAUL HAWK HAZE HAZY HEAD HEAL HEAP HEAT HEEL HELD HELM HELP HENS HERO HIVE
+      HOAX HOOF HOOK HOOP HOOT HOPE HORN HOSE HOST HUGE HULK HULL HUMP HUNK HUNT HURL
+      HURT HUSK HYMN ICED IDEA IDLE INCH INTO IRIS IRON ISLE ITCH ITEM JABS JADE JAIL
+      JAMB JANE JAWS JAZZ JERK JIBE JILT JIVE JOBS JOCK JOGS JOIN JOKE JOLT JUGS JUMP
+      JUNK JURY JUST KEEN KEEP KEYS KICK KILL KIND KING KISS KNOB KNOW LACK LAKE LAME
+      LAMP LANE LAPS LARD LARK LASH LASS LAST LATH LAUD LAWN LAZE LAZY LEAD LEAF LEAN
+      LEAP LEND LENS LESS LIED LIEU LIFE LIFT LIKE LIMB LIME LIMP LINK LINT LION LIPS
+      LISP LIST LIVE LOAD LOAM LOAN LOCK LOFT LOGE LOGS LONG LOOK LOON LOOP LOOT LORE
+      LOSE LOSS LOST LOUD LOVE LUCK LULL LUMP LURE LURK MACE MADE MAIL MAIN MALE MALL
+      MANE MANY MAST MATE MATH MATS MAZE MEAD MEAL MEAN MEAT MELD MELT MEMO MENU MESA
+      MESH MESS MICE MIKE MILD MILE MILK MILL MIME MIND MINT MIRE MISS MIST MOAN MOAT
+      MOCK MOLD MOLE MOTE MOTH MOVE MUCH MULE MUSE MUSK MUST MUTE MYTH NABS NAIL NAME
+      NAVY NEAT NECK NEED NERD NEST NEXT NICE NITS NOEL NODE NOPE NORM NOSE NOTE NUMB
+      NUNS OATH ODDS ODES OILS OKAY ONCE ONLY ONTO OPEN OVEN OVER OWLS OWNS PACE PACK
+      PADS PAIN PAIR PALE PALM PANE PANS PART PAST PAVE PAWN PAYS PEAK PEAL PEAR PEAT
+      PECK PEEL PENS PEON PERK PEST PETS PIER PINE PINK PINT PIPE PLAN PLAY PLEA PLOD
+      PLOT PLOW PLUG PLUS POEM POET POKE POLE POLL POLO POND POOL PORE PORK PORT POSE
+      POST POTS POUR PREY PROD PROW PUCK PULL PUMP PUNK PURE PUSH RACK RAGE RAID RAIL
+      RAIN RAKE RAMP RANG RANK RANT RASP RAVE RAYS RAZE REAL READ REAP REEF REED REEL
+      REIN RELY REND RENT RICE RICH RIDE RIFE RIFT RING RIOT RIPE RISE RISK ROAD ROAM
+      ROAR ROBE ROCK RODE ROLE ROMP ROPE ROSE ROVE RUBY RUDE RULE RUSE RUSH RUST SAFE
+      SAGA SAGE SAIL SAKE SALE SALT SAME SAND SANE SANG SANK SAVE SCAM SCAN SCAR SEAL
+      SEAM SEAR SEEN SEEP SELF SELL SEND SENT SHED SHIN SHIP SHOE SHOP SHOT SHOW SHUT
+      SIGH SILK SILL SILO SING SINK SIRE SITE SIZE SKEW SKIN SKIP SLAB SLAM SLAP SLAT
+      SLIM SLIP SLOP SLOW SLUM SLUG SLUR SNAP SNOB SNUG SOAK SOAP SOAR SOCK SOFT SOIL
+      SOLE SOME SONG SOOT SORE SORT SOUR SPAN SPAR SPIN SPOT SPUR STAB STAG STAR STAY
+      STEM STEP STIR STUB STUN STUD SUED SUIT SULK SUNK SURF SWAB SWAN SWAP SWAT SWAY
+      TACK TALE TAME TAPS TARE TASK TAUT TAXI TEAK TEAL TEAR TEEM TELL TERM THAN THEN
+      THEY THIN THUG TICK TIED TIER TIFF TILT TINT TIRE TOIL TOLL TOMB TOME TONE TOOK
+      TOOL TOOT TORE TORN TOUR TRAM TRAP TRAY TREK TRIM TRIP TROD TROT TRUE TUFT TUGS
+      TUNA TUSK TWIN TWIT UGLY UNDO UNIT UNTO UPON USED VAIN VALE VANE VARY VAST VEIL
+      VEIN VENT VERB VERY VEST VINE VOID VOLT VOTE WADE WAIF WAIL WANE WARP WART WARY
+      WAVE WEAN WELD WELL WEND WENT WEST WHAT WHEN WHOM WILE WILL WILT WINK WIRE WISE
+      WISH WISP WOKE WOMB WOOD WOOF WORD WORM WORN WOVE WRAP WREN YANK YARD YAWN YELL
+      YOGA YORE ZONE ZOOM
+    `.trim().split(/\s+/));
+
+    // ── Game State ──
+    const PUZZLE = {
+      solution:      ['CARD', 'AREA', 'READ', 'DADS'],
+      revealedRow:   1,            // row index that is pre-filled
+      guessableRows: [0, 2, 3]    // row indices filled by player, top to bottom
+    };
+
+    const MAX_GUESSES = 5;
+    let guessIndex  = 0;
+    let guessRowPtr = 0;
+    let currentCol  = 0;
+    let gameOver    = false;
+
+    function activeRowNum() {
+      return PUZZLE.guessableRows[guessRowPtr];
+    }
+
+    function markActiveRow() {
+      document.querySelectorAll('.row').forEach(r => r.classList.remove('active'));
+      if (guessRowPtr < PUZZLE.guessableRows.length) {
+        document.getElementById('row-' + activeRowNum()).classList.add('active');
+      }
+    }
+
+    function handleKey(key) {
+      if (gameOver) return;
+      if (guessRowPtr >= PUZZLE.guessableRows.length) return;
+      if (guessIndex >= MAX_GUESSES) return;
+
+      const row = activeRowNum();
+
+      if (/^[a-zA-Z]$/.test(key) && currentCol < 4) {
+        const cell = document.getElementById('r' + row + 'c' + currentCol);
+        cell.textContent = key.toUpperCase();
+        cell.classList.remove('pop');
+        void cell.offsetWidth; // restart animation if same cell re-typed
+        cell.classList.add('pop');
+        cell.addEventListener('animationend', () => cell.classList.remove('pop'), { once: true });
+        currentCol++;
+      } else if (key === 'Backspace' && currentCol > 0) {
+        currentCol--;
+        document.getElementById('r' + row + 'c' + currentCol).textContent = '';
+      } else if (key === 'Enter') {
+        handleEnter();
+      }
+    }
+
+    function handleEnter() {
+      if (guessRowPtr >= PUZZLE.guessableRows.length) return;
+      if (guessIndex >= MAX_GUESSES) return;
+      if (currentCol < 4) { showMessage('Not enough letters'); return; }
+
+      const row = activeRowNum();
+      const word = [0,1,2,3].map(c =>
+        document.getElementById('r' + row + 'c' + c).textContent
+      ).join('');
+
+      if (!WORDS.has(word)) {
+        showMessage('Not a word');
+        shakeRow(row);
+        return;
+      }
+
+      // Valid — flip tiles, then advance and check end state
+      applyFeedback(row, word, checkGameEnd);
+      guessIndex++;
+      currentCol = 0;
+      guessRowPtr++;
+      markActiveRow();
+      updateGuessCounter();
+    }
+
+    function computeFeedback(guess, solution, allLetters) {
+      const result = [];
+      const sol = solution.split('');
+      const gss = guess.split('');
+      for (let i = 0; i < 4; i++) {
+        if (gss[i] === sol[i])            result.push('green');
+        else if (allLetters.has(gss[i]))  result.push('yellow');
+        else                               result.push('gray');
+      }
+      return result;
+    }
+
+    const letterStates = {};
+    const COLOR_RANK   = { green: 3, yellow: 2, gray: 1 };
+
+    function applyFeedback(rowNum, word, onComplete) {
+      const allLetters = new Set(PUZZLE.solution.join(''));
+      const feedback   = computeFeedback(word, PUZZLE.solution[rowNum], allLetters);
+      const FLIP_MS    = 500;
+      const STAGGER_MS = 180;
+
+      feedback.forEach((color, col) => {
+        const cell = document.getElementById('r' + rowNum + 'c' + col);
+        setTimeout(() => {
+          cell.classList.add('flipping');
+          setTimeout(() => cell.classList.add(color), FLIP_MS / 2);
+          cell.addEventListener('animationend', () => cell.classList.remove('flipping'), { once: true });
+        }, col * STAGGER_MS);
+      });
+
+      const totalMs = (feedback.length - 1) * STAGGER_MS + FLIP_MS;
+      setTimeout(() => {
+        updateKeyboardColors(feedback, word);
+        if (onComplete) onComplete();
+      }, totalMs + 50);
+    }
+
+    function updateKeyboardColors(feedback, word) {
+      feedback.forEach((color, i) => {
+        const letter = word[i];
+        if (!letterStates[letter] || COLOR_RANK[color] > COLOR_RANK[letterStates[letter]]) {
+          letterStates[letter] = color;
+          const btn = document.querySelector('[data-key="' + letter + '"]');
+          if (btn) { btn.classList.remove('green', 'yellow', 'gray'); btn.classList.add(color); }
+        }
+      });
+    }
+
+    function showMessage(text) {
+      const el = document.getElementById('message');
+      el.textContent = text;
+      el.classList.add('visible');
+      clearTimeout(showMessage._t);
+      showMessage._t = setTimeout(() => el.classList.remove('visible'), 1500);
+    }
+
+    function shakeRow(rowNum) {
+      const el = document.getElementById('row-' + rowNum);
+      el.classList.add('shake');
+      el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+    }
+
+    function updateGuessCounter() {
+      const done = guessRowPtr >= PUZZLE.guessableRows.length || guessIndex >= MAX_GUESSES;
+      document.getElementById('guess-counter').textContent =
+        done ? '' : 'GUESS ' + (guessIndex + 1) + ' OF ' + MAX_GUESSES;
+    }
+
+    function checkGameEnd() {
+      const allFilled   = guessRowPtr >= PUZZLE.guessableRows.length;
+      const outOfGuesses = guessIndex >= MAX_GUESSES;
+      if (!allFilled && !outOfGuesses) return;
+
+      // Reveal any rows the player never reached (loss with guesses exhausted)
+      PUZZLE.guessableRows.slice(guessRowPtr).forEach(rowNum => {
+        [0,1,2,3].forEach(c => {
+          const cell = document.getElementById('r' + rowNum + 'c' + c);
+          cell.textContent = PUZZLE.solution[rowNum][c];
+          cell.classList.add('reveal');
+        });
+      });
+
+      const won = PUZZLE.guessableRows.every(rowNum => {
+        const word = [0,1,2,3]
+          .map(c => document.getElementById('r' + rowNum + 'c' + c).textContent)
+          .join('');
+        return word === PUZZLE.solution[rowNum];
+      });
+
+      gameOver = true;
+      showResult(won);
+    }
+
+    function showResult(won) {
+      document.getElementById('guess-counter').hidden = true;
+      const panel = document.getElementById('result');
+      panel.hidden = false;
+      panel.dataset.outcome = won ? 'win' : 'lose';
+      document.getElementById('result-title').textContent = won
+        ? ['Solved!', 'Perfect square!', 'Nailed it!'][guessIndex % 3]
+        : 'Better luck at the next NOON';
+      document.getElementById('result-sub').textContent = won
+        ? 'Completed in ' + guessIndex + ' of ' + MAX_GUESSES + ' guesses'
+        : 'Come back tomorrow at 12:00 PM ET';
+    }
+
+    function buildShareText() {
+      const header = 'NOON #' + PUZZLE_NUM + ' ' + guessIndex + '/' + MAX_GUESSES;
+      const rows = [];
+      for (let r = 0; r < 4; r++) {
+        if (r === PUZZLE.revealedRow) {
+          rows.push('⬜⬜⬜⬜');  // freebie — white squares signal the gimme
+        } else {
+          rows.push([0,1,2,3].map(c => {
+            const cl = document.getElementById('r' + r + 'c' + c).classList;
+            if (cl.contains('green'))  return '🟩';
+            if (cl.contains('yellow')) return '🟨';
+            return '⬜';
+          }).join(''));
+        }
+      }
+      return header + '\n\n' + rows.join('\n');
+    }
+
+    document.getElementById('share-btn').addEventListener('click', () => {
+      const text = buildShareText();
+      const btn = document.getElementById('share-btn');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+      }).catch(() => {
+        showMessage('Copy not supported — share manually');
+      });
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      handleKey(e.key);
+    });
+
+    markActiveRow();  // highlight row 0 on load
+
+    document.getElementById('keyboard').addEventListener('click', e => {
+      const key = e.target.closest('[data-key]');
+      if (key) handleKey(key.dataset.key);
+    });
+  </script>
+
+  <script>
+    function updateCountdown() {
+      const now = new Date();
+      const etNow = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+
+      const nextNoon = new Date(etNow);
+      nextNoon.setHours(12, 0, 0, 0);
+      if (etNow >= nextNoon) nextNoon.setDate(nextNoon.getDate() + 1);
+
+      const diff = nextNoon - etNow;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      const timeStr =
+        String(h).padStart(2, '0') + ':' +
+        String(m).padStart(2, '0') + ':' +
+        String(s).padStart(2, '0');
+
+      document.querySelectorAll('.countdown-time').forEach(el => el.textContent = timeStr);
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  </script>
+
+</body>
+</html>
