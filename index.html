@@ -548,6 +548,7 @@
     let guessRowPtr = 0;
     let currentCol  = 0;
     let gameOver    = false;
+    let submitting  = false;  // true while flip animation is running
 
     function activeRowNum() {
       return PUZZLE.guessableRows[guessRowPtr];
@@ -561,7 +562,7 @@
     }
 
     function handleKey(key) {
-      if (gameOver) return;
+      if (gameOver || submitting) return;
       if (guessRowPtr >= PUZZLE.guessableRows.length) return;
       if (guessIndex >= MAX_GUESSES) return;
 
@@ -599,13 +600,39 @@
         return;
       }
 
-      // Valid — flip tiles, then advance and check end state
-      applyFeedback(row, word, checkGameEnd);
+      submitting = true;
       guessIndex++;
       currentCol = 0;
-      guessRowPtr++;
-      markActiveRow();
       updateGuessCounter();
+
+      const isCorrect = word === PUZZLE.solution[row];
+
+      if (isCorrect) {
+        // Row solved — keep colors, advance to next row
+        applyFeedback(row, word, () => {
+          guessRowPtr++;
+          markActiveRow();
+          checkGameEnd();
+          submitting = false;
+        });
+      } else {
+        // Wrong — show feedback, then clear the row for another attempt
+        applyFeedback(row, word, () => {
+          if (guessIndex >= MAX_GUESSES) {
+            checkGameEnd();
+            submitting = false;
+          } else {
+            setTimeout(() => {
+              [0,1,2,3].forEach(c => {
+                const cell = document.getElementById('r' + row + 'c' + c);
+                cell.textContent = '';
+                cell.classList.remove('green', 'yellow', 'gray');
+              });
+              submitting = false;
+            }, 400);
+          }
+        });
+      }
     }
 
     function computeFeedback(guess, solution, allLetters) {
@@ -677,28 +704,25 @@
     }
 
     function checkGameEnd() {
-      const allFilled   = guessRowPtr >= PUZZLE.guessableRows.length;
-      const outOfGuesses = guessIndex >= MAX_GUESSES;
-      if (!allFilled && !outOfGuesses) return;
-
-      // Reveal any rows the player never reached (loss with guesses exhausted)
-      PUZZLE.guessableRows.slice(guessRowPtr).forEach(rowNum => {
-        [0,1,2,3].forEach(c => {
-          const cell = document.getElementById('r' + rowNum + 'c' + c);
-          cell.textContent = PUZZLE.solution[rowNum][c];
-          cell.classList.add('reveal');
+      if (guessRowPtr >= PUZZLE.guessableRows.length) {
+        // All rows solved — win
+        gameOver = true;
+        showResult(true);
+        return;
+      }
+      if (guessIndex >= MAX_GUESSES) {
+        // Out of guesses — reveal unsolved rows and lose
+        PUZZLE.guessableRows.slice(guessRowPtr).forEach(rowNum => {
+          [0,1,2,3].forEach(c => {
+            const cell = document.getElementById('r' + rowNum + 'c' + c);
+            cell.textContent = PUZZLE.solution[rowNum][c];
+            cell.classList.remove('green', 'yellow', 'gray');
+            cell.classList.add('reveal');
+          });
         });
-      });
-
-      const won = PUZZLE.guessableRows.every(rowNum => {
-        const word = [0,1,2,3]
-          .map(c => document.getElementById('r' + rowNum + 'c' + c).textContent)
-          .join('');
-        return word === PUZZLE.solution[rowNum];
-      });
-
-      gameOver = true;
-      showResult(won);
+        gameOver = true;
+        showResult(false);
+      }
     }
 
     function showResult(won) {
