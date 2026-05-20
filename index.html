@@ -782,7 +782,8 @@
     }
 
     function buildShareText() {
-      const header = 'NOON #' + PUZZLE_NUM + ' ' + guessIndex + '/' + MAX_GUESSES;
+      const won = guessRowPtr >= PUZZLE.guessableRows.length;
+      const header = 'NOON #' + PUZZLE_NUM + ' ' + (won ? guessIndex : 'X') + '/' + MAX_GUESSES;
       const rows = [];
       for (let r = 0; r < 4; r++) {
         if (r === PUZZLE.revealedRow) {
