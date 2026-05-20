@@ -617,10 +617,10 @@
     function handleEnter() {
       if (guessRowPtr >= PUZZLE.guessableRows.length) return;
       if (guessIndex >= MAX_GUESSES) return;
-      const allFilled = [0,1,2,3].every(c => document.getElementById('r' + row + 'c' + c).textContent !== '');
-      if (!allFilled) { showMessage('Not enough letters'); return; }
 
       const row = activeRowNum();
+      const allFilled = [0,1,2,3].every(c => document.getElementById('r' + row + 'c' + c).textContent !== '');
+      if (!allFilled) { showMessage('Not enough letters'); return; }
       const word = [0,1,2,3].map(c =>
         document.getElementById('r' + row + 'c' + c).textContent
       ).join('');
