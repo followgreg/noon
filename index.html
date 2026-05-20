@@ -660,6 +660,7 @@
         // Row solved — keep colors, advance to next row
         applyFeedback(row, word, () => {
           guessRowPtr++;
+          resetKeyboardColors();
           markActiveRow();
           checkGameEnd();
           submitting = false;
@@ -723,6 +724,14 @@
           const btn = document.querySelector('[data-key="' + letter + '"]');
           if (btn) { btn.classList.remove('green', 'yellow', 'gray'); btn.classList.add(color); }
         }
+      });
+    }
+
+    function resetKeyboardColors() {
+      Object.keys(letterStates).forEach(letter => {
+        delete letterStates[letter];
+        const btn = document.querySelector('[data-key="' + letter + '"]');
+        if (btn) btn.classList.remove('green', 'yellow', 'gray');
       });
     }
 
