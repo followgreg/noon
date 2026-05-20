@@ -274,7 +274,7 @@
     /* ── Keyboard letter states ── */
     .kb-key.green  { background: #6AAA64; color: #fff; }
     .kb-key.yellow { background: #B59F3B; color: #fff; }
-    .kb-key.gray   { background: #4A4A4A; color: #999; }
+    .kb-key.gray   { background: #252525; color: #444; }
 
     /* ── Responsive height ── */
     @media (max-height: 680px) {
@@ -587,17 +587,28 @@
 
       const row = activeRowNum();
 
-      if (/^[a-zA-Z]$/.test(key) && currentCol < 4) {
-        const cell = document.getElementById('r' + row + 'c' + currentCol);
-        cell.textContent = key.toUpperCase();
-        cell.classList.remove('pop');
-        void cell.offsetWidth; // restart animation if same cell re-typed
-        cell.classList.add('pop');
-        cell.addEventListener('animationend', () => cell.classList.remove('pop'), { once: true });
-        currentCol++;
-      } else if (key === 'Backspace' && currentCol > 0) {
-        currentCol--;
-        document.getElementById('r' + row + 'c' + currentCol).textContent = '';
+      if (/^[a-zA-Z]$/.test(key)) {
+        // Skip past any locked green cells at cursor position
+        while (currentCol < 4 && document.getElementById('r' + row + 'c' + currentCol).classList.contains('green')) currentCol++;
+        if (currentCol < 4) {
+          const cell = document.getElementById('r' + row + 'c' + currentCol);
+          cell.textContent = key.toUpperCase();
+          cell.classList.remove('pop');
+          void cell.offsetWidth;
+          cell.classList.add('pop');
+          cell.addEventListener('animationend', () => cell.classList.remove('pop'), { once: true });
+          currentCol++;
+          // Advance past any green cells that follow
+          while (currentCol < 4 && document.getElementById('r' + row + 'c' + currentCol).classList.contains('green')) currentCol++;
+        }
+      } else if (key === 'Backspace') {
+        // Retreat past locked green cells to find a clearable cell
+        let col = currentCol - 1;
+        while (col >= 0 && document.getElementById('r' + row + 'c' + col).classList.contains('green')) col--;
+        if (col >= 0) {
+          document.getElementById('r' + row + 'c' + col).textContent = '';
+          currentCol = col;
+        }
       } else if (key === 'Enter') {
         handleEnter();
       }
@@ -606,7 +617,8 @@
     function handleEnter() {
       if (guessRowPtr >= PUZZLE.guessableRows.length) return;
       if (guessIndex >= MAX_GUESSES) return;
-      if (currentCol < 4) { showMessage('Not enough letters'); return; }
+      const allFilled = [0,1,2,3].every(c => document.getElementById('r' + row + 'c' + c).textContent !== '');
+      if (!allFilled) { showMessage('Not enough letters'); return; }
 
       const row = activeRowNum();
       const word = [0,1,2,3].map(c =>
@@ -791,9 +803,14 @@
       const row = activeRowNum();
       [0,1,2,3].forEach(c => {
         const cell = document.getElementById('r' + row + 'c' + c);
-        cell.textContent = '';
-        cell.classList.remove('green', 'yellow', 'gray');
+        if (!cell.classList.contains('green')) {
+          cell.textContent = '';
+          cell.classList.remove('yellow', 'gray');
+        }
       });
+      // Place cursor at first non-green cell
+      currentCol = 0;
+      while (currentCol < 4 && document.getElementById('r' + row + 'c' + currentCol).classList.contains('green')) currentCol++;
       document.getElementById('clear-btn').hidden = true;
       submitting = false;
     });
