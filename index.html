@@ -127,6 +127,24 @@
     .cell.gray   { background: #4A4A4A; border-color: #4A4A4A; color: #fff; }
     .cell.reveal { background: #2F2F2F; border-color: #444; color: #666; }
 
+    /* ── Clear button (shown after a wrong guess) ── */
+    .clear-btn {
+      padding: 8px 22px;
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .clear-btn:hover  { border-color: #666; color: var(--text); }
+    .clear-btn:active { opacity: 0.6; }
+
     /* ── Share button ── */
     .share-btn {
       margin-top: 14px;
@@ -410,6 +428,7 @@
     </div>
 
     <div class="guess-counter" id="guess-counter">GUESS 1 OF 5</div>
+    <button class="clear-btn" id="clear-btn" hidden>Clear row ↩</button>
 
     <div class="result" id="result" hidden>
       <div class="result-title" id="result-title"></div>
@@ -616,20 +635,14 @@
           submitting = false;
         });
       } else {
-        // Wrong — show feedback, then clear the row for another attempt
+        // Wrong — show feedback, then surface the Clear button
         applyFeedback(row, word, () => {
           if (guessIndex >= MAX_GUESSES) {
             checkGameEnd();
             submitting = false;
           } else {
-            setTimeout(() => {
-              [0,1,2,3].forEach(c => {
-                const cell = document.getElementById('r' + row + 'c' + c);
-                cell.textContent = '';
-                cell.classList.remove('green', 'yellow', 'gray');
-              });
-              submitting = false;
-            }, 400);
+            document.getElementById('clear-btn').hidden = false;
+            // submitting stays true — blocks input until player clears
           }
         });
       }
@@ -773,6 +786,17 @@
     });
 
     markActiveRow();  // highlight row 0 on load
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      const row = activeRowNum();
+      [0,1,2,3].forEach(c => {
+        const cell = document.getElementById('r' + row + 'c' + c);
+        cell.textContent = '';
+        cell.classList.remove('green', 'yellow', 'gray');
+      });
+      document.getElementById('clear-btn').hidden = true;
+      submitting = false;
+    });
 
     document.getElementById('keyboard').addEventListener('click', e => {
       const key = e.target.closest('[data-key]');
