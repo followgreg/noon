@@ -47,12 +47,33 @@
       border-bottom: 1px solid var(--border);
     }
 
-    h1 {
-      font-size: 2.2rem;
-      font-weight: 700;
-      letter-spacing: 0.3em;
-      color: var(--accent);
+    /* ── Logo ── */
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 3px;
       line-height: 1;
+    }
+
+    .logo-n {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0;
+    }
+
+    .logo-o {
+      width: 2.3rem;
+      height: 2.3rem;
+      background: var(--accent);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--bg);
+      letter-spacing: 0;
     }
 
     .puzzle-num {
@@ -61,11 +82,17 @@
       font-weight: 600;
     }
 
+    .header-tagline {
+      font-size: 0.64rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      margin-top: 1px;
+    }
+
     .header-countdown {
       font-size: 0.66rem;
       color: var(--muted);
       letter-spacing: 0.06em;
-      margin-top: 2px;
     }
 
     .countdown-time {
@@ -500,9 +527,15 @@
   <div class="toast" id="toast"></div>
 
   <header>
-    <h1>NOON</h1>
+    <div class="logo">
+      <span class="logo-n">N</span>
+      <span class="logo-o">O</span>
+      <span class="logo-o">O</span>
+      <span class="logo-n">N</span>
+    </div>
     <p class="puzzle-num">Puzzle #1</p>
-    <p class="header-countdown">Next NOON in <span class="countdown-time">--:--:--</span></p>
+    <p class="header-tagline">New Puzzle Every Day at Noon EST</p>
+    <p class="header-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
   </header>
 
   <main>
@@ -523,7 +556,7 @@
       <div class="result-title" id="result-title"></div>
       <div class="result-sub"   id="result-sub"></div>
       <button class="share-btn" id="share-btn">Share result</button>
-      <p class="result-countdown">Next NOON in <span class="countdown-time">--:--:--</span></p>
+      <p class="result-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
     </div>
   </main>
 
@@ -531,7 +564,7 @@
     <span>NOON · Daily Word Square</span>
   </footer>
 
-  <section class="picker" id="picker" hidden>
+  <section class="picker" id="picker">
     <div class="picker-row">
       <button class="pk-key" data-letter="Q">Q</button>
       <button class="pk-key" data-letter="W">W</button>
@@ -632,13 +665,11 @@
       if (selected) selected.el.classList.remove('selected');
       selected = { r, c, el };
       el.classList.add('selected');
-      pickerEl.hidden = false;
     }
 
     function deselect() {
       if (selected) selected.el.classList.remove('selected');
       selected = null;
-      pickerEl.hidden = true;
     }
 
     // ── Guess logic ──
