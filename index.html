@@ -438,13 +438,16 @@
       padding: 14px 16px;
       border-top: 1px solid var(--border);
       display: flex;
-      justify-content: center;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
     }
 
     footer span {
       font-size: 0.68rem;
       color: var(--muted);
       letter-spacing: 0.08em;
+      text-align: center;
     }
 
     /* ── Modal shared ── */
@@ -695,6 +698,7 @@
 
   <footer>
     <span>NOON · Daily Word Square</span>
+    <span>© 2026 Never Stop Creating, LLC · <a href="mailto:info@neverstopcreatingllc.com" style="color:inherit;text-decoration:none;">info@neverstopcreatingllc.com</a></span>
   </footer>
 
   <section class="picker" id="picker">
