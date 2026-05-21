@@ -92,9 +92,8 @@
       background: transparent;
       color: var(--muted);
       font-family: 'Inter', sans-serif;
-      font-size: 0.82rem;
+      font-size: 0.88rem;
       font-weight: 700;
-      font-style: italic;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -486,8 +485,26 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
+      position: relative;
+      max-height: 90dvh;
+      overflow-y: auto;
     }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 1.3rem;
+      line-height: 1;
+      cursor: pointer;
+      padding: 4px 6px;
+      touch-action: manipulation;
+    }
+    .modal-close:hover { color: var(--text); }
 
     .modal-title {
       font-size: 1rem;
@@ -516,42 +533,63 @@
     .modal-btn:active { opacity: 0.8; }
 
     /* ── How to play ── */
-    .modal-rules {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .rule {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 0.84rem;
-      line-height: 1.45;
+    .modal-subhead {
+      font-size: 0.95rem;
+      font-weight: 600;
       color: var(--text);
+      text-align: center;
     }
 
-    .rule-icon {
-      flex-shrink: 0;
-      width: 22px;
-      height: 22px;
-      border-radius: 4px;
+    .modal-italic {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .example-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 46px);
+      grid-template-rows: repeat(4, 46px);
+      gap: 4px;
+      margin: 0 auto;
+    }
+
+    .example-cell {
+      width: 46px;
+      height: 46px;
+      border-radius: 5px;
+      background: var(--green);
+      border: 2px solid var(--green);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-top: 1px;
+      color: #fff;
     }
 
-    .rule-icon.cross  { background: #222; border: 1px solid #404040; color: var(--muted); }
-    .rule-icon.green  { background: var(--green); color: #fff; }
-    .rule-icon.yellow { background: var(--yellow); color: #fff; }
-    .rule-icon.gray   { background: #4A4A4A; color: #fff; }
-    .rule-icon.dot    { background: transparent; font-size: 1rem; }
+    .modal-line {
+      font-size: 0.82rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
 
-    .rule-text strong { color: #fff; }
-    .rule-text { color: #AAA; }
+    .modal-line strong { color: var(--text); }
+
+    .feedback-rules {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .feedback-rule {
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
 
     /* ── Stats modal ── */
     .stat-grid {
@@ -623,33 +661,30 @@
   <!-- How to play -->
   <div class="modal-overlay" id="how-to-play">
     <div class="modal-card">
-      <div class="modal-title">How to play</div>
-      <div class="modal-rules">
-        <div class="rule">
-          <div class="rule-icon cross">A</div>
-          <div class="rule-text">The <strong>cross</strong> — one word revealed across and down — is your starting anchor.</div>
-        </div>
-        <div class="rule">
-          <div class="rule-icon dot">👆</div>
-          <div class="rule-text">Tap any empty cell, pick a letter and fill in words.</div>
-        </div>
-        <div class="rule">
-          <div class="rule-icon green">A</div>
-          <div class="rule-text"><strong>Correct Guesses</strong> — letters turn green.</div>
-        </div>
-        <div class="rule">
-          <div class="rule-icon yellow">A</div>
-          <div class="rule-text"><strong>Right letter, wrong cell</strong> — costs 1 guess.</div>
-        </div>
-        <div class="rule">
-          <div class="rule-icon gray">A</div>
-          <div class="rule-text"><strong>Not in the puzzle</strong> — flashes gray and vanishes. Costs 1 guess.</div>
-        </div>
-        <div class="rule">
-          <div class="rule-icon dot">❌</div>
-          <div class="rule-text">You have <strong>5 wrong guesses</strong>. Use them wisely.</div>
-        </div>
+      <button class="modal-close" id="modal-close" aria-label="Close">&#x2715;</button>
+      <div class="modal-title">How to Play</div>
+      <div class="modal-subhead">Complete the NOON square.</div>
+      <div class="modal-italic">Every word reads across.<br>Every word reads down.<br>Same words, both directions.</div>
+
+      <div class="example-grid">
+        <div class="example-cell">W</div><div class="example-cell">I</div><div class="example-cell">T</div><div class="example-cell">H</div>
+        <div class="example-cell">I</div><div class="example-cell">D</div><div class="example-cell">E</div><div class="example-cell">A</div>
+        <div class="example-cell">T</div><div class="example-cell">E</div><div class="example-cell">L</div><div class="example-cell">L</div>
+        <div class="example-cell">H</div><div class="example-cell">A</div><div class="example-cell">L</div><div class="example-cell">L</div>
       </div>
+
+      <div class="modal-line">One word is revealed to start. Fill in the rest.</div>
+      <div class="modal-line"><strong>Tap any empty square. Choose a letter.</strong></div>
+
+      <div class="feedback-rules">
+        <div class="feedback-rule">🟩 Right letter, right square — it sticks. The mirror square fills too.</div>
+        <div class="feedback-rule">🟨 Right letter, wrong square — it flashes and disappears. One guess gone.</div>
+        <div class="feedback-rule">⬜ Letter not in the puzzle — it flashes and disappears. One guess gone.</div>
+      </div>
+
+      <div class="modal-line"><strong>You have 5 wrong guesses. Use them wisely.</strong></div>
+      <div class="modal-line">A new NOON drops every day at 12:00 PM ET.</div>
+
       <button class="modal-btn" id="modal-got-it">Got it</button>
     </div>
   </div>
@@ -673,7 +708,7 @@
     <p class="puzzle-num" id="puzzle-num">Puzzle #–</p>
     <p class="header-tagline">New Puzzle Every Day at Noon EST</p>
     <p class="header-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
-    <button class="info-btn" id="info-btn" aria-label="How to play">i</button>
+    <button class="info-btn" id="info-btn" aria-label="How to play">?</button>
   </header>
 
   <main>
@@ -1346,14 +1381,17 @@
 
     // ── How to play ──
     const modal = document.getElementById('how-to-play');
-    if (localStorage.getItem('noon-seen')) { modal.hidden = true; }
-    document.getElementById('modal-got-it').addEventListener('click', () => {
+    if (localStorage.getItem('noonSeen')) { modal.hidden = true; }
+
+    function closeModal() {
       modal.hidden = true;
-      localStorage.setItem('noon-seen', '1');
-    });
-    document.getElementById('info-btn').addEventListener('click', () => {
-      modal.hidden = false;
-    });
+      localStorage.setItem('noonSeen', '1');
+    }
+
+    document.getElementById('modal-got-it').addEventListener('click', closeModal);
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.getElementById('info-btn').addEventListener('click', () => { modal.hidden = false; });
 
     // ── Stats modal ──
     const statsModal = document.getElementById('stats-modal');
