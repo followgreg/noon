@@ -45,7 +45,31 @@
       align-items: center;
       gap: 4px;
       border-bottom: 1px solid var(--border);
+      position: relative;
     }
+
+    .info-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      font-style: italic;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .info-btn:hover { border-color: var(--muted); color: var(--text); }
 
     /* ── Logo ── */
     .logo-svg {
@@ -513,6 +537,7 @@
     <p class="puzzle-num">Puzzle #1</p>
     <p class="header-tagline">New Puzzle Every Day at Noon EST</p>
     <p class="header-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
+    <button class="info-btn" id="info-btn" aria-label="How to play">i</button>
   </header>
 
   <main>
@@ -789,6 +814,8 @@
     }
 
     function showResultPanel(won) {
+      deselect();
+      pickerEl.hidden = true;
       const panel = document.getElementById('result');
       panel.hidden = false;
       panel.dataset.outcome = won ? 'win' : 'lose';
@@ -860,7 +887,7 @@
     updateCountdown();
     setInterval(updateCountdown, 1000);
 
-    // ── How to play (first visit only) ──
+    // ── How to play ──
     const modal = document.getElementById('how-to-play');
     if (localStorage.getItem('noon-seen')) {
       modal.hidden = true;
@@ -868,6 +895,9 @@
     document.getElementById('modal-got-it').addEventListener('click', () => {
       modal.hidden = true;
       localStorage.setItem('noon-seen', '1');
+    });
+    document.getElementById('info-btn').addEventListener('click', () => {
+      modal.hidden = false;
     });
   </script>
 
