@@ -1139,10 +1139,14 @@
           recordWrong();
         }
       } else {
-        flashCell(el, letter, 'gray');
-        updateKeyState(letter, 'gray');
-        showToast('Not in the puzzle');
-        recordWrong();
+        if (keyStates[letter] === 'gray') {
+          showToast('Not in the puzzle');
+        } else {
+          flashCell(el, letter, 'gray');
+          updateKeyState(letter, 'gray');
+          showToast('Not in the puzzle');
+          recordWrong();
+        }
       }
     }
 
