@@ -61,6 +61,17 @@
       font-weight: 600;
     }
 
+    .header-countdown {
+      font-size: 0.66rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      margin-top: 2px;
+    }
+
+    .countdown-time {
+      font-variant-numeric: tabular-nums;
+    }
+
     /* ── Main ── */
     main {
       flex: 1;
@@ -94,10 +105,9 @@
       text-transform: uppercase;
       color: var(--text);
       cursor: pointer;
-      transition: border-color 0.12s, background 0.12s;
+      transition: border-color 0.12s, background 0.12s, box-shadow 0.12s;
     }
 
-    /* Pre-revealed cross — muted, non-interactive */
     .cell.cross {
       background: #222;
       border-color: #383838;
@@ -105,7 +115,6 @@
       cursor: default;
     }
 
-    /* Player/mirror correct */
     .cell.correct {
       background: var(--green);
       border-color: var(--green);
@@ -113,7 +122,6 @@
       cursor: default;
     }
 
-    /* Revealed on loss */
     .cell.reveal {
       background: #2A2A2A;
       border-color: #444;
@@ -121,10 +129,15 @@
       cursor: default;
     }
 
-    /* Selected empty cell */
+    /* Selected — glowing amber pulse */
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 0 0px rgba(240,180,41,0); border-color: var(--accent); }
+      50%       { box-shadow: 0 0 0 4px rgba(240,180,41,0.18); border-color: #f8d26a; }
+    }
     .cell.selected {
       border-color: var(--accent);
       background: #2F2C22;
+      animation: glow-pulse 1.6s ease-in-out infinite;
     }
 
     /* ── Flash animations ── */
@@ -149,6 +162,32 @@
       cursor: default;
       animation: flash-out 0.65s ease forwards;
     }
+
+    /* ── Correct fill pop ── */
+    @keyframes pop-in {
+      0%   { transform: scale(0.82); }
+      65%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+    .cell.pop { animation: pop-in 0.22s ease; }
+
+    /* ── Mirror auto-fill shimmer ── */
+    @keyframes mirror-in {
+      0%   { transform: scale(0.7); opacity: 0; }
+      60%  { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+    .cell.mirror-pop { animation: mirror-in 0.32s ease; }
+
+    /* ── Shake (wrong-dots + grid on loss) ── */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%      { transform: translateX(-6px); }
+      40%      { transform: translateX(6px); }
+      60%      { transform: translateX(-3px); }
+      80%      { transform: translateX(3px); }
+    }
+    .shake { animation: shake 0.35s ease; }
 
     /* ── Wrong guess tracker ── */
     .wrong-wrap {
@@ -175,18 +214,45 @@
       height: 16px;
       border-radius: 50%;
       background: var(--border);
-      transition: background 0.2s;
+      transition: background 0.25s;
     }
 
     .dot.used { background: var(--red); }
 
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 7px 16px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    .toast.visible { opacity: 1; }
+
     /* ── Result panel ── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     .result {
       text-align: center;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 10px;
+      animation: fade-up 0.35s ease;
     }
 
     .result[hidden] { display: none; }
@@ -203,6 +269,13 @@
 
     .result[data-outcome="win"]  .result-title { color: var(--green); }
     .result[data-outcome="lose"] .result-title { color: var(--red); }
+
+    .result-countdown {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      margin-top: 4px;
+    }
 
     .share-btn {
       margin-top: 4px;
@@ -222,6 +295,11 @@
     .share-btn:active { opacity: 0.75; }
 
     /* ── Letter picker ── */
+    @keyframes slide-up {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
     .picker {
       position: fixed;
       bottom: 0;
@@ -234,6 +312,7 @@
       flex-direction: column;
       gap: 6px;
       align-items: center;
+      animation: slide-up 0.18s ease;
     }
 
     .picker[hidden] { display: none; }
@@ -289,9 +368,12 @@
 </head>
 <body>
 
+  <div class="toast" id="toast"></div>
+
   <header>
     <h1>NOON</h1>
     <p class="puzzle-num">Puzzle #1</p>
+    <p class="header-countdown">Next NOON in <span class="countdown-time">--:--:--</span></p>
   </header>
 
   <main>
@@ -299,7 +381,7 @@
 
     <div class="wrong-wrap">
       <div class="wrong-label">Wrong guesses</div>
-      <div class="wrong-dots">
+      <div class="wrong-dots" id="wrong-dots">
         <span class="dot" id="dot-0"></span>
         <span class="dot" id="dot-1"></span>
         <span class="dot" id="dot-2"></span>
@@ -312,6 +394,7 @@
       <div class="result-title" id="result-title"></div>
       <div class="result-sub"   id="result-sub"></div>
       <button class="share-btn" id="share-btn">Share result</button>
+      <p class="result-countdown">Next NOON in <span class="countdown-time">--:--:--</span></p>
     </div>
   </main>
 
@@ -362,9 +445,9 @@
         R E A D
         D A D S
 
-      Empty cells and their mirror pairs (transpose):
-        (0,0)=C ↔ diagonal   (0,2)=R ↔ (2,0)=R   (0,3)=D ↔ (3,0)=D
-        (2,2)=A ↔ diagonal   (2,3)=D ↔ (3,2)=D   (3,3)=S ↔ diagonal
+      Mirror pairs among empty cells (transpose):
+        (0,2)↔(2,0)=R   (0,3)↔(3,0)=D   (2,3)↔(3,2)=D
+        (0,0), (2,2), (3,3) are on the diagonal — no separate mirror
     */
     const PUZZLE_NUM = 1;
 
@@ -376,8 +459,6 @@
     ];
 
     const isCross = (r, c) => r === 1 || c === 1;
-
-    // All letters present anywhere in the 4×4 (for yellow detection)
     const solutionLetters = new Set(SOLUTION.flat());
 
     // ── Game state ──
@@ -387,7 +468,7 @@
     const MAX_WRONG  = 5;
     let gameOver = false;
     let gameWon  = false;
-    let selected = null; // { r, c, el }
+    let selected = null;
 
     // ── Build grid ──
     const gridEl   = document.getElementById('grid');
@@ -437,42 +518,46 @@
       deselect();
 
       if (letter === SOLUTION[r][c]) {
-        // Correct — green + one mirror fill (no cascade)
-        markCorrect(r, c);
+        markCorrect(r, c, 'pop');
         autoFillMirror(r, c);
         checkWin();
       } else if (solutionLetters.has(letter)) {
-        // Yellow — letter exists in the puzzle but wrong cell
         wasYellow[r][c] = true;
         flashCell(el, letter, 'yellow');
+        showToast('Wrong position');
         recordWrong();
       } else {
-        // Gray — letter not in the puzzle at all
         flashCell(el, letter, 'gray');
+        showToast('Not in the puzzle');
         recordWrong();
       }
     }
 
-    function markCorrect(r, c) {
+    function markCorrect(r, c, animClass) {
       const el = document.getElementById(`cell-${r}-${c}`);
       filled[r][c] = true;
       el.textContent = SOLUTION[r][c];
       el.classList.remove('selected', 'flash-yellow', 'flash-gray');
       el.classList.add('correct');
+      if (animClass) {
+        el.classList.add(animClass);
+        el.addEventListener('animationend', () => el.classList.remove(animClass), { once: true });
+      }
     }
 
     function getMirror(r, c) {
-      if (r === c) return null; // on the diagonal — no separate mirror cell
-      return [c, r];            // transpose
+      if (r === c) return null;
+      return [c, r];
     }
 
     function autoFillMirror(r, c) {
       const mirror = getMirror(r, c);
       if (!mirror) return;
       const [mr, mc] = mirror;
-      if (isCross(mr, mc)) return;  // already revealed by cross
-      if (filled[mr][mc]) return;   // already correctly filled
-      markCorrect(mr, mc);
+      if (isCross(mr, mc)) return;
+      if (filled[mr][mc]) return;
+      // Small delay so the mirror fill reads as a consequence, not simultaneous
+      setTimeout(() => markCorrect(mr, mc, 'mirror-pop'), 120);
     }
 
     function flashCell(el, letter, color) {
@@ -487,7 +572,18 @@
     function recordWrong() {
       document.getElementById(`dot-${wrongGuesses}`).classList.add('used');
       wrongGuesses++;
+      const dotsEl = document.getElementById('wrong-dots');
+      dotsEl.classList.add('shake');
+      dotsEl.addEventListener('animationend', () => dotsEl.classList.remove('shake'), { once: true });
       checkLose();
+    }
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('visible');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => el.classList.remove('visible'), 1200);
     }
 
     // ── End conditions ──
@@ -497,14 +593,31 @@
           if (!isCross(r, c) && !filled[r][c]) return;
       gameOver = true;
       gameWon  = true;
-      showResult(true);
+      // Wave celebration across all cells, then show result
+      let delay = 0;
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          const el = document.getElementById(`cell-${r}-${c}`);
+          setTimeout(() => {
+            el.classList.add('pop');
+            el.addEventListener('animationend', () => el.classList.remove('pop'), { once: true });
+          }, delay);
+          delay += 45;
+        }
+      }
+      setTimeout(() => showResultPanel(true), delay + 80);
     }
 
     function checkLose() {
       if (wrongGuesses < MAX_WRONG) return;
       gameOver = true;
-      revealSolution();
-      showResult(false);
+      // Shake grid, then reveal
+      gridEl.classList.add('shake');
+      gridEl.addEventListener('animationend', () => gridEl.classList.remove('shake'), { once: true });
+      setTimeout(() => {
+        revealSolution();
+        showResultPanel(false);
+      }, 400);
     }
 
     function revealSolution() {
@@ -520,7 +633,7 @@
       }
     }
 
-    function showResult(won) {
+    function showResultPanel(won) {
       const panel = document.getElementById('result');
       panel.hidden = false;
       panel.dataset.outcome = won ? 'win' : 'lose';
@@ -572,6 +685,25 @@
       if (/^[a-zA-Z]$/.test(e.key) && selected) handleGuess(e.key.toUpperCase());
       if (e.key === 'Escape') deselect();
     });
+
+    // ── Countdown ──
+    function updateCountdown() {
+      const now    = new Date();
+      const etNow  = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const target = new Date(etNow);
+      target.setHours(12, 0, 0, 0);
+      if (etNow >= target) target.setDate(target.getDate() + 1);
+
+      const diff = target - etNow;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const str = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      document.querySelectorAll('.countdown-time').forEach(el => el.textContent = str);
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
   </script>
 
 </body>
