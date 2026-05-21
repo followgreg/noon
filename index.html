@@ -548,12 +548,25 @@
       line-height: 1.6;
     }
 
+    .eg-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      margin: 0 auto;
+      width: fit-content;
+    }
+
+    .eg-row {
+      display: flex;
+      gap: 7px;
+      align-items: flex-start;
+    }
+
     .example-grid {
       display: grid;
       grid-template-columns: repeat(4, 46px);
       grid-template-rows: repeat(4, 46px);
       gap: 4px;
-      margin: 0 auto;
     }
 
     .example-cell {
@@ -568,6 +581,54 @@
       font-size: 1.1rem;
       font-weight: 700;
       color: #fff;
+    }
+
+    .example-cell.eg-cross {
+      background: #232323;
+      border-color: #363636;
+      color: #555;
+      opacity: 0.85;
+    }
+
+    .eg-right-arrows {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .eg-spacer { height: 46px; }
+
+    .eg-h-arrow {
+      height: 46px;
+      display: flex;
+      align-items: center;
+      font-size: 0.6rem;
+      color: var(--accent);
+      font-style: italic;
+      white-space: nowrap;
+      opacity: 0.8;
+    }
+
+    .eg-bottom-arrows {
+      display: flex;
+      gap: 4px;
+      margin-top: 5px;
+    }
+
+    .eg-spacer-h {
+      width: 46px;
+      flex-shrink: 0;
+    }
+
+    .eg-v-arrow {
+      width: 46px;
+      flex-shrink: 0;
+      font-size: 0.58rem;
+      color: var(--accent);
+      font-style: italic;
+      text-align: center;
+      line-height: 1.3;
+      opacity: 0.8;
     }
 
     .modal-line {
@@ -666,11 +727,39 @@
       <div class="modal-subhead">Complete the NOON square.</div>
       <div class="modal-italic">Every word reads across.<br>Every word reads down.<br>Same words, both directions.</div>
 
-      <div class="example-grid">
-        <div class="example-cell">W</div><div class="example-cell">I</div><div class="example-cell">T</div><div class="example-cell">H</div>
-        <div class="example-cell">I</div><div class="example-cell">D</div><div class="example-cell">E</div><div class="example-cell">A</div>
-        <div class="example-cell">T</div><div class="example-cell">E</div><div class="example-cell">L</div><div class="example-cell">L</div>
-        <div class="example-cell">H</div><div class="example-cell">A</div><div class="example-cell">L</div><div class="example-cell">L</div>
+      <div class="eg-container">
+        <div class="eg-row">
+          <div class="example-grid">
+            <div class="example-cell">W</div>
+            <div class="example-cell eg-cross">I</div>
+            <div class="example-cell">T</div>
+            <div class="example-cell">H</div>
+            <div class="example-cell eg-cross">I</div>
+            <div class="example-cell eg-cross">D</div>
+            <div class="example-cell eg-cross">E</div>
+            <div class="example-cell eg-cross">A</div>
+            <div class="example-cell">T</div>
+            <div class="example-cell eg-cross">E</div>
+            <div class="example-cell">L</div>
+            <div class="example-cell">L</div>
+            <div class="example-cell">H</div>
+            <div class="example-cell eg-cross">A</div>
+            <div class="example-cell">L</div>
+            <div class="example-cell">L</div>
+          </div>
+          <div class="eg-right-arrows">
+            <div class="eg-spacer"></div>
+            <div class="eg-h-arrow">← <em>revealed</em></div>
+            <div class="eg-spacer"></div>
+            <div class="eg-spacer"></div>
+          </div>
+        </div>
+        <div class="eg-bottom-arrows">
+          <div class="eg-spacer-h"></div>
+          <div class="eg-v-arrow">↑<br><em>revealed</em></div>
+          <div class="eg-spacer-h"></div>
+          <div class="eg-spacer-h"></div>
+        </div>
       </div>
 
       <div class="modal-line">One word is revealed to start. Fill in the rest.</div>
