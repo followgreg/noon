@@ -304,6 +304,18 @@
 
     .result[hidden] { display: none; }
 
+    .result-affirmation {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .result[data-outcome="lose"] .result-affirmation {
+      color: var(--text);
+    }
+
     .result-title {
       font-size: 1.15rem;
       font-weight: 700;
@@ -679,6 +691,7 @@
     </div>
 
     <div class="result" id="result" hidden>
+      <div class="result-affirmation" id="result-affirmation"></div>
       <div class="result-title" id="result-title"></div>
       <div class="result-sub"   id="result-sub"></div>
       <div class="result-streak">
@@ -1240,6 +1253,8 @@
       }
     }
 
+    const AFFIRMATIONS = ['UNTOUCHABLE', 'SHARP', 'DIALED IN', 'SOLID', 'GOT THERE', 'SQUEEZED IT'];
+
     function showResultPanel(won) {
       deselect();
       pickerEl.hidden = true;
@@ -1247,6 +1262,9 @@
       const panel = document.getElementById('result');
       panel.hidden = false;
       panel.dataset.outcome = won ? 'win' : 'lose';
+      document.getElementById('result-affirmation').textContent = won
+        ? AFFIRMATIONS[wrongGuesses]
+        : "TOMORROW'S YOURS";
       document.getElementById('result-title').textContent = won
         ? 'Solved!'
         : 'Better luck next time';
