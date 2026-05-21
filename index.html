@@ -48,32 +48,9 @@
     }
 
     /* ── Logo ── */
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      line-height: 1;
-    }
-
-    .logo-n {
-      font-size: 2.4rem;
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: 0;
-    }
-
-    .logo-o {
-      width: 2.3rem;
-      height: 2.3rem;
-      background: var(--accent);
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--bg);
-      letter-spacing: 0;
+    .logo-svg {
+      height: 44px;
+      width: auto;
     }
 
     .puzzle-num {
@@ -527,12 +504,12 @@
   <div class="toast" id="toast"></div>
 
   <header>
-    <div class="logo">
-      <span class="logo-n">N</span>
-      <span class="logo-o">O</span>
-      <span class="logo-o">O</span>
-      <span class="logo-n">N</span>
-    </div>
+    <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="150 238 400 112">
+      <path fill="#F0B429" d="M215.411,245.198h23.371v101.505h-25.307l-33.189-59.188v59.188h-23.371v-101.229h25.445l33.051,59.05v-59.327Z"/>
+      <path fill="#F0B429" d="M347.337,295.812c0,28.073-22.818,50.752-50.891,50.752s-50.752-22.68-50.752-50.752,22.68-50.753,50.752-50.753,50.891,22.68,50.891,50.753Z"/>
+      <path fill="#F0B429" d="M452.294,295.812c0,28.073-22.818,50.752-50.891,50.752s-50.753-22.68-50.753-50.752,22.68-50.753,50.753-50.753,50.891,22.68,50.891,50.753Z"/>
+      <path fill="#F0B429" d="M517.701,245.198h23.371v101.505h-25.307l-33.19-59.188v59.188h-23.371v-101.229h25.446l33.051,59.05v-59.327Z"/>
+    </svg>
     <p class="puzzle-num">Puzzle #1</p>
     <p class="header-tagline">New Puzzle Every Day at Noon EST</p>
     <p class="header-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
