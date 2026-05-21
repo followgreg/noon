@@ -343,6 +343,11 @@
 
     .pk-key:active { background: #555; }
 
+    /* Keyboard letter states */
+    .pk-key.key-green  { background: var(--green);  color: #fff; }
+    .pk-key.key-yellow { background: var(--yellow); color: #fff; }
+    .pk-key.key-gray   { background: #252525; color: #3A3A3A; }
+
     /* ── Footer ── */
     footer {
       width: 100%;
@@ -469,15 +474,15 @@
         </div>
         <div class="rule">
           <div class="rule-icon dot">👆</div>
-          <div class="rule-text"><strong>Tap any empty cell</strong>, then pick a letter. Fill the square in any order.</div>
+          <div class="rule-text">Tap any empty cell, pick a letter and fill in words.</div>
         </div>
         <div class="rule">
           <div class="rule-icon green">A</div>
-          <div class="rule-text"><strong>Correct</strong> — the cell locks green and its mirror position fills automatically.</div>
+          <div class="rule-text"><strong>Correct Guesses</strong> — letters turn green.</div>
         </div>
         <div class="rule">
           <div class="rule-icon yellow">A</div>
-          <div class="rule-text"><strong>Right letter, wrong cell</strong> — flashes yellow and vanishes. Costs 1 guess.</div>
+          <div class="rule-text"><strong>Right letter, wrong cell</strong> — costs 1 guess.</div>
         </div>
         <div class="rule">
           <div class="rule-icon gray">A</div>
@@ -588,6 +593,7 @@
     // ── Game state ──
     const filled    = Array.from({length: 4}, () => Array(4).fill(false));
     const wasYellow = Array.from({length: 4}, () => Array(4).fill(false));
+    const keyStates = {}; // letter → 'green' | 'yellow' | 'gray'
     let wrongGuesses = 0;
     const MAX_WRONG  = 5;
     let gameOver = false;
@@ -643,17 +649,31 @@
 
       if (letter === SOLUTION[r][c]) {
         markCorrect(r, c, 'pop');
-        autoFillMirror(r, c);
-        checkWin();
+        const fillDelay = autoFillAllOccurrences(r, c);
+        setTimeout(() => checkWin(), fillDelay + 50);
       } else if (solutionLetters.has(letter)) {
         wasYellow[r][c] = true;
         flashCell(el, letter, 'yellow');
+        updateKeyState(letter, 'yellow');
         showToast('Wrong position');
         recordWrong();
       } else {
         flashCell(el, letter, 'gray');
+        updateKeyState(letter, 'gray');
         showToast('Not in the puzzle');
         recordWrong();
+      }
+    }
+
+    function updateKeyState(letter, state) {
+      const rank = { green: 3, yellow: 2, gray: 1 };
+      if (!keyStates[letter] || rank[state] > rank[keyStates[letter]]) {
+        keyStates[letter] = state;
+        const btn = document.querySelector(`[data-letter="${letter}"]`);
+        if (btn) {
+          btn.classList.remove('key-green', 'key-yellow', 'key-gray');
+          btn.classList.add('key-' + state);
+        }
       }
     }
 
@@ -663,25 +683,28 @@
       el.textContent = SOLUTION[r][c];
       el.classList.remove('selected', 'flash-yellow', 'flash-gray');
       el.classList.add('correct');
+      updateKeyState(SOLUTION[r][c], 'green');
       if (animClass) {
         el.classList.add(animClass);
         el.addEventListener('animationend', () => el.classList.remove(animClass), { once: true });
       }
     }
 
-    function getMirror(r, c) {
-      if (r === c) return null;
-      return [c, r];
-    }
-
-    function autoFillMirror(r, c) {
-      const mirror = getMirror(r, c);
-      if (!mirror) return;
-      const [mr, mc] = mirror;
-      if (isCross(mr, mc)) return;
-      if (filled[mr][mc]) return;
-      // Small delay so the mirror fill reads as a consequence, not simultaneous
-      setTimeout(() => markCorrect(mr, mc, 'mirror-pop'), 120);
+    function autoFillAllOccurrences(r, c) {
+      const letter = SOLUTION[r][c];
+      let delay = 120;
+      for (let rr = 0; rr < 4; rr++) {
+        for (let cc = 0; cc < 4; cc++) {
+          if (rr === r && cc === c) continue;
+          if (isCross(rr, cc)) continue;
+          if (filled[rr][cc]) continue;
+          if (SOLUTION[rr][cc] === letter) {
+            setTimeout(() => markCorrect(rr, cc, 'mirror-pop'), delay);
+            delay += 80;
+          }
+        }
+      }
+      return delay;
     }
 
     function flashCell(el, letter, color) {
