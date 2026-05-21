@@ -18,6 +18,7 @@
       --accent:  #F0B429;
       --green:   #6AAA64;
       --yellow:  #B59F3B;
+      --red:     #E05A5A;
       --cell:    72px;
       --gap:     6px;
     }
@@ -67,8 +68,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 32px;
-      padding: 28px 16px;
+      gap: 28px;
+      padding: 28px 16px 110px;
     }
 
     /* ── Grid ── */
@@ -93,10 +94,10 @@
       text-transform: uppercase;
       color: var(--text);
       cursor: pointer;
-      transition: border-color 0.12s;
+      transition: border-color 0.12s, background 0.12s;
     }
 
-    /* Pre-revealed cross cells — muted, non-interactive */
+    /* Pre-revealed cross — muted, non-interactive */
     .cell.cross {
       background: #222;
       border-color: #383838;
@@ -104,11 +105,19 @@
       cursor: default;
     }
 
-    /* Player-correct cells */
+    /* Player/mirror correct */
     .cell.correct {
       background: var(--green);
       border-color: var(--green);
       color: #fff;
+      cursor: default;
+    }
+
+    /* Revealed on loss */
+    .cell.reveal {
+      background: #2A2A2A;
+      border-color: #444;
+      color: #555;
       cursor: default;
     }
 
@@ -117,6 +126,100 @@
       border-color: var(--accent);
       background: #2F2C22;
     }
+
+    /* ── Flash animations ── */
+    @keyframes flash-out {
+      0%, 55%  { opacity: 1; transform: scale(1); }
+      80%      { opacity: 0.5; transform: scale(0.88); }
+      100%     { opacity: 0; transform: scale(0.82); }
+    }
+
+    .cell.flash-yellow {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      color: #fff;
+      cursor: default;
+      animation: flash-out 0.65s ease forwards;
+    }
+
+    .cell.flash-gray {
+      background: #4A4A4A;
+      border-color: #4A4A4A;
+      color: #fff;
+      cursor: default;
+      animation: flash-out 0.65s ease forwards;
+    }
+
+    /* ── Wrong guess tracker ── */
+    .wrong-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wrong-label {
+      font-size: 0.68rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .wrong-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+
+    .dot.used { background: var(--red); }
+
+    /* ── Result panel ── */
+    .result {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .result[hidden] { display: none; }
+
+    .result-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+    }
+
+    .result-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .result[data-outcome="win"]  .result-title { color: var(--green); }
+    .result[data-outcome="lose"] .result-title { color: var(--red); }
+
+    .share-btn {
+      margin-top: 4px;
+      padding: 10px 28px;
+      background: var(--accent);
+      color: #1C1C1C;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .share-btn:active { opacity: 0.75; }
 
     /* ── Letter picker ── */
     .picker {
@@ -165,7 +268,7 @@
     footer {
       width: 100%;
       max-width: 480px;
-      padding: 14px 16px 80px; /* bottom pad so footer clears the picker */
+      padding: 14px 16px;
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: center;
@@ -193,6 +296,23 @@
 
   <main>
     <div class="grid" id="grid"></div>
+
+    <div class="wrong-wrap">
+      <div class="wrong-label">Wrong guesses</div>
+      <div class="wrong-dots">
+        <span class="dot" id="dot-0"></span>
+        <span class="dot" id="dot-1"></span>
+        <span class="dot" id="dot-2"></span>
+        <span class="dot" id="dot-3"></span>
+        <span class="dot" id="dot-4"></span>
+      </div>
+    </div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-title" id="result-title"></div>
+      <div class="result-sub"   id="result-sub"></div>
+      <button class="share-btn" id="share-btn">Share result</button>
+    </div>
   </main>
 
   <footer>
@@ -238,10 +358,16 @@
     /*
       Puzzle #1 word square:
         C A R D
-        A R E A   ← row 1 (across) + col 1 (down) = pre-revealed cross
+        A R E A   ← pre-revealed cross: row 1 across + col 1 down
         R E A D
         D A D S
+
+      Empty cells and their mirror pairs (transpose):
+        (0,0)=C ↔ diagonal   (0,2)=R ↔ (2,0)=R   (0,3)=D ↔ (3,0)=D
+        (2,2)=A ↔ diagonal   (2,3)=D ↔ (3,2)=D   (3,3)=S ↔ diagonal
     */
+    const PUZZLE_NUM = 1;
+
     const SOLUTION = [
       ['C','A','R','D'],
       ['A','R','E','A'],
@@ -249,40 +375,49 @@
       ['D','A','D','S']
     ];
 
-    // A cell is part of the cross if it's in row 1 OR col 1
     const isCross = (r, c) => r === 1 || c === 1;
 
-    // ── Build grid ──
-    const gridEl = document.getElementById('grid');
+    // All letters present anywhere in the 4×4 (for yellow detection)
+    const solutionLetters = new Set(SOLUTION.flat());
+
+    // ── Game state ──
+    const filled    = Array.from({length: 4}, () => Array(4).fill(false));
+    const wasYellow = Array.from({length: 4}, () => Array(4).fill(false));
+    let wrongGuesses = 0;
+    const MAX_WRONG  = 5;
+    let gameOver = false;
+    let gameWon  = false;
     let selected = null; // { r, c, el }
+
+    // ── Build grid ──
+    const gridEl   = document.getElementById('grid');
+    const pickerEl = document.getElementById('picker');
 
     for (let r = 0; r < 4; r++) {
       for (let c = 0; c < 4; c++) {
         const el = document.createElement('div');
         el.className = 'cell';
         el.id = `cell-${r}-${c}`;
-
         if (isCross(r, c)) {
           el.classList.add('cross');
           el.textContent = SOLUTION[r][c];
         } else {
           el.addEventListener('click', () => handleCellClick(r, c, el));
         }
-
         gridEl.appendChild(el);
       }
     }
 
-    const pickerEl = document.getElementById('picker');
-
+    // ── Cell selection ──
     function handleCellClick(r, c, el) {
-      if (el.classList.contains('correct')) return;
+      if (gameOver) return;
+      if (filled[r][c]) return;
+      if (el.classList.contains('flash-yellow') || el.classList.contains('flash-gray')) return;
 
       if (selected && selected.r === r && selected.c === c) {
         deselect();
         return;
       }
-
       if (selected) selected.el.classList.remove('selected');
       selected = { r, c, el };
       el.classList.add('selected');
@@ -295,25 +430,146 @@
       pickerEl.hidden = true;
     }
 
-    function placeLetter(letter) {
-      if (!selected) return;
+    // ── Guess logic ──
+    function handleGuess(letter) {
+      if (!selected || gameOver) return;
       const { r, c, el } = selected;
-      el.textContent = letter;
       deselect();
-      // validation will go here in Part 3
+
+      if (letter === SOLUTION[r][c]) {
+        // Correct — green + one mirror fill (no cascade)
+        markCorrect(r, c);
+        autoFillMirror(r, c);
+        checkWin();
+      } else if (solutionLetters.has(letter)) {
+        // Yellow — letter exists in the puzzle but wrong cell
+        wasYellow[r][c] = true;
+        flashCell(el, letter, 'yellow');
+        recordWrong();
+      } else {
+        // Gray — letter not in the puzzle at all
+        flashCell(el, letter, 'gray');
+        recordWrong();
+      }
     }
 
-    // Picker tap
-    pickerEl.addEventListener('click', e => {
-      const key = e.target.closest('[data-letter]');
-      if (key) placeLetter(key.dataset.letter);
+    function markCorrect(r, c) {
+      const el = document.getElementById(`cell-${r}-${c}`);
+      filled[r][c] = true;
+      el.textContent = SOLUTION[r][c];
+      el.classList.remove('selected', 'flash-yellow', 'flash-gray');
+      el.classList.add('correct');
+    }
+
+    function getMirror(r, c) {
+      if (r === c) return null; // on the diagonal — no separate mirror cell
+      return [c, r];            // transpose
+    }
+
+    function autoFillMirror(r, c) {
+      const mirror = getMirror(r, c);
+      if (!mirror) return;
+      const [mr, mc] = mirror;
+      if (isCross(mr, mc)) return;  // already revealed by cross
+      if (filled[mr][mc]) return;   // already correctly filled
+      markCorrect(mr, mc);
+    }
+
+    function flashCell(el, letter, color) {
+      el.textContent = letter;
+      el.classList.add('flash-' + color);
+      el.addEventListener('animationend', () => {
+        el.classList.remove('flash-' + color);
+        el.textContent = '';
+      }, { once: true });
+    }
+
+    function recordWrong() {
+      document.getElementById(`dot-${wrongGuesses}`).classList.add('used');
+      wrongGuesses++;
+      checkLose();
+    }
+
+    // ── End conditions ──
+    function checkWin() {
+      for (let r = 0; r < 4; r++)
+        for (let c = 0; c < 4; c++)
+          if (!isCross(r, c) && !filled[r][c]) return;
+      gameOver = true;
+      gameWon  = true;
+      showResult(true);
+    }
+
+    function checkLose() {
+      if (wrongGuesses < MAX_WRONG) return;
+      gameOver = true;
+      revealSolution();
+      showResult(false);
+    }
+
+    function revealSolution() {
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (!isCross(r, c) && !filled[r][c]) {
+            const el = document.getElementById(`cell-${r}-${c}`);
+            el.textContent = SOLUTION[r][c];
+            el.classList.remove('flash-yellow', 'flash-gray');
+            el.classList.add('reveal');
+          }
+        }
+      }
+    }
+
+    function showResult(won) {
+      const panel = document.getElementById('result');
+      panel.hidden = false;
+      panel.dataset.outcome = won ? 'win' : 'lose';
+      document.getElementById('result-title').textContent = won
+        ? 'Solved!'
+        : 'Better luck next time';
+      document.getElementById('result-sub').textContent = won
+        ? `${wrongGuesses} wrong guess${wrongGuesses !== 1 ? 'es' : ''} — well done`
+        : 'The solution has been revealed';
+    }
+
+    // ── Share ──
+    function buildShareText() {
+      const score  = gameWon ? `${wrongGuesses}/5` : 'X/5';
+      const header = `NOON #${PUZZLE_NUM}  ${score}`;
+      const rows   = [];
+      for (let r = 0; r < 4; r++) {
+        const row = [];
+        for (let c = 0; c < 4; c++) {
+          if (isCross(r, c))        row.push('⬜');
+          else if (wasYellow[r][c]) row.push('🟨');
+          else if (filled[r][c])    row.push('🟩');
+          else                      row.push('⬛');
+        }
+        rows.push(row.join(''));
+      }
+      return header + '\n\n' + rows.join('\n');
+    }
+
+    document.getElementById('share-btn').addEventListener('click', () => {
+      const btn = document.getElementById('share-btn');
+      navigator.clipboard.writeText(buildShareText()).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+      }).catch(() => {
+        btn.textContent = 'Copy failed';
+        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+      });
     });
 
-    // Physical keyboard
+    // ── Input ──
+    pickerEl.addEventListener('click', e => {
+      const key = e.target.closest('[data-letter]');
+      if (key) handleGuess(key.dataset.letter);
+    });
+
     document.addEventListener('keydown', e => {
-      if (!selected) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      if (/^[a-zA-Z]$/.test(e.key)) placeLetter(e.key.toUpperCase());
+      if (/^[a-zA-Z]$/.test(e.key) && selected) handleGuess(e.key.toUpperCase());
       if (e.key === 'Escape') deselect();
     });
   </script>
