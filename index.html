@@ -1127,22 +1127,22 @@
         markCorrect(r, c, 'pop');
         const fillDelay = autoFillAllOccurrences(r, c);
         setTimeout(() => checkWin(), fillDelay + 50);
-      } else if (guessedPerCell[r][c].has(letter)) {
-        showToast('You guessed this letter already');
-      } else {
-        guessedPerCell[r][c].add(letter);
-        if (solutionLetters.has(letter)) {
+      } else if (solutionLetters.has(letter)) {
+        if (guessedPerCell[r][c].has(letter)) {
+          showToast('You guessed this letter already');
+        } else {
+          guessedPerCell[r][c].add(letter);
           wasYellow[r][c] = true;
           flashCell(el, letter, 'yellow');
           updateKeyState(letter, 'yellow');
           showToast('Wrong position');
           recordWrong();
-        } else {
-          flashCell(el, letter, 'gray');
-          updateKeyState(letter, 'gray');
-          showToast('Not in the puzzle');
-          recordWrong();
         }
+      } else {
+        flashCell(el, letter, 'gray');
+        updateKeyState(letter, 'gray');
+        showToast('Not in the puzzle');
+        recordWrong();
       }
     }
 
