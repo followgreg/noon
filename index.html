@@ -1001,7 +1001,10 @@
     const revealIdx   = PUZZLE_DATA.reveal;
     const SOLUTION    = PUZZLE_DATA.words.map(w => [...w]);
     const isCross     = (r, c) => r === revealIdx || c === revealIdx;
-    const solutionLetters = new Set(SOLUTION.flat());
+    const solutionLetters = new Set();
+    for (let r = 0; r < 4; r++)
+      for (let c = 0; c < 4; c++)
+        if (!isCross(r, c)) solutionLetters.add(SOLUTION[r][c]);
 
     document.getElementById('puzzle-num').textContent = `Puzzle #${PUZZLE_NUM}`;
 
