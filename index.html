@@ -1253,6 +1253,28 @@
     function handleGuess(letter) {
       if (!selected || gameOver) return;
       const { r, c, el } = selected;
+
+      // ── Blocked guesses — show message, keep cell selected ──
+
+      // Green = correctly placed everywhere already
+      if (keyStates[letter] === 'green') {
+        showToast('Already used');
+        return;
+      }
+
+      // Gray = not in the puzzle at all
+      if (keyStates[letter] === 'gray') {
+        showToast('Not in the puzzle');
+        return;
+      }
+
+      // Yellow repeat on the same cell
+      if (solutionLetters.has(letter) && guessedPerCell[r][c].has(letter)) {
+        showToast('You guessed this letter already');
+        return;
+      }
+
+      // ── Real guess — deselect and process ──
       deselect();
 
       if (letter === SOLUTION[r][c]) {
@@ -1260,25 +1282,17 @@
         const fillDelay = autoFillAllOccurrences(r, c);
         setTimeout(() => checkWin(), fillDelay + 50);
       } else if (solutionLetters.has(letter)) {
-        if (guessedPerCell[r][c].has(letter)) {
-          showToast('You guessed this letter already');
-        } else {
-          guessedPerCell[r][c].add(letter);
-          wasYellow[r][c] = true;
-          flashCell(el, letter, 'yellow');
-          updateKeyState(letter, 'yellow');
-          showToast('Wrong position');
-          recordWrong();
-        }
+        guessedPerCell[r][c].add(letter);
+        wasYellow[r][c] = true;
+        flashCell(el, letter, 'yellow');
+        updateKeyState(letter, 'yellow');
+        showToast('Wrong position');
+        recordWrong();
       } else {
-        if (keyStates[letter] === 'gray') {
-          showToast('Not in the puzzle');
-        } else {
-          flashCell(el, letter, 'gray');
-          updateKeyState(letter, 'gray');
-          showToast('Not in the puzzle');
-          recordWrong();
-        }
+        flashCell(el, letter, 'gray');
+        updateKeyState(letter, 'gray');
+        showToast('Not in the puzzle');
+        recordWrong();
       }
     }
 
