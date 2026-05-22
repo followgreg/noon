@@ -9,6 +9,14 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
 
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1C1C1C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NOON">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-XLL3WHY9W1"></script>
   <script>
@@ -1429,13 +1437,18 @@
 
     document.getElementById('share-btn').addEventListener('click', () => {
       const btn = document.getElementById('share-btn');
-      navigator.clipboard.writeText(buildShareText()).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
-      }).catch(() => {
-        btn.textContent = 'Copy failed';
-        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
-      });
+      const text = buildShareText();
+      if (navigator.share) {
+        navigator.share({ title: `NOON #${PUZZLE_NUM}`, text }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+        }).catch(() => {
+          btn.textContent = 'Copy failed';
+          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+        });
+      }
     });
 
     // ── Input ──
