@@ -13156,6 +13156,16 @@
       deselect();
       pickerEl.hidden = true;
       const s = recordCompletion(won);
+
+      // Persist result so revisiting the page restores the completed state
+      localStorage.setItem('noonResult', JSON.stringify({
+        puzzleIndex,
+        won,
+        wrongGuesses,
+        wasYellow: wasYellow.map(row => [...row]),
+        filled:    filled.map(row => [...row])
+      }));
+
       const panel = document.getElementById('result');
       panel.hidden = false;
       panel.dataset.outcome = won ? 'win' : 'lose';
@@ -13217,6 +13227,36 @@
       if (/^[a-zA-Z]$/.test(e.key) && selected) handleGuess(e.key.toUpperCase());
       if (e.key === 'Escape') deselect();
     });
+
+    // ── Restore completed puzzle on revisit ──
+    (function restoreIfCompleted() {
+      let saved;
+      try { saved = JSON.parse(localStorage.getItem('noonResult')); } catch { return; }
+      if (!saved || saved.puzzleIndex !== puzzleIndex) return;
+
+      // Rebuild game-state variables from saved data
+      gameOver     = true;
+      gameWon      = saved.won;
+      wrongGuesses = saved.wrongGuesses;
+      for (let r = 0; r < 4; r++)
+        for (let c = 0; c < 4; c++) {
+          wasYellow[r][c] = saved.wasYellow[r][c];
+          filled[r][c]    = saved.filled[r][c];
+        }
+
+      // Restore grid appearance
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          if (isCross(r, c)) continue;
+          const el = document.getElementById(`cell-${r}-${c}`);
+          el.textContent = SOLUTION[r][c];
+          el.classList.add(filled[r][c] ? 'correct' : 'reveal');
+        }
+      }
+
+      // Show result panel (recordCompletion guard prevents double-counting)
+      showResultPanel(saved.won);
+    })();
 
     // ── Countdown ──
     function updateCountdown() {
