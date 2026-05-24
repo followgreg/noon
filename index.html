@@ -693,6 +693,109 @@
       text-align: center;
     }
 
+    /* ── Settings button ── */
+    .settings-btn {
+      position: absolute;
+      top: 16px;
+      right: 48px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .settings-btn:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── Toggle switch ── */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #444;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle-track::before {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-track::before { transform: translateX(20px); }
+
+    /* ── Settings modal rows ── */
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 4px 0;
+    }
+    .settings-label-wrap { display: flex; flex-direction: column; gap: 3px; }
+    .settings-label { font-size: 0.9rem; font-weight: 600; color: var(--text); }
+    .settings-desc { font-size: 0.72rem; color: var(--muted); }
+
+    /* ── Hard mode upsell ── */
+    .hard-upsell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 9px;
+      padding: 12px 18px;
+      background: #252525;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 100%;
+      max-width: 260px;
+    }
+    .hard-upsell[hidden] { display: none; }
+    .hard-upsell-text {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+    .hard-upsell-btn {
+      padding: 7px 16px;
+      background: transparent;
+      border: 1.5px solid var(--accent);
+      border-radius: 4px;
+      color: var(--accent);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: background 0.15s, color 0.15s;
+    }
+    .hard-upsell-btn.confirmed {
+      background: var(--accent);
+      color: #1C1C1C;
+      cursor: default;
+    }
+
     @media (max-width: 360px) {
       :root { --cell: 60px; }
       .pk-key { width: 30px; height: 42px; font-size: 0.78rem; }
@@ -700,6 +803,24 @@
   </style>
 </head>
 <body>
+
+  <!-- Settings modal -->
+  <div class="modal-overlay" id="settings-modal" hidden>
+    <div class="modal-card">
+      <button class="modal-close" id="settings-close" aria-label="Close">&#x2715;</button>
+      <div class="modal-title">Settings</div>
+      <div class="settings-row">
+        <div class="settings-label-wrap">
+          <div class="settings-label">Hard Mode</div>
+          <div class="settings-desc">Only 2 of 4 starting letters revealed</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="hard-mode-toggle">
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
 
   <!-- Stats modal -->
   <div class="modal-overlay" id="stats-modal" hidden>
@@ -805,6 +926,11 @@
     <p class="puzzle-num" id="puzzle-num">Puzzle #–</p>
     <p class="header-tagline">New Puzzle Every Day at Noon EST</p>
     <p class="header-countdown">Next NOON: <span class="countdown-time">--:--:--</span></p>
+    <button class="settings-btn" id="settings-btn" aria-label="Settings">
+      <svg width="13" height="13" viewBox="0 0 100 100" fill="currentColor">
+        <path d="M50 63a13 13 0 110-26 13 13 0 010 26zm34-9 7-4-6-11-9 4a26 26 0 00-6-3l-1-10H31l-1 10a26 26 0 00-6 3l-9-4-6 11 7 4a26 26 0 000 8l-7 4 6 11 9-4a26 26 0 006 3l1 10h38l1-10a26 26 0 006-3l9 4 6-11-7-4a26 26 0 000-8z"/>
+      </svg>
+    </button>
     <button class="info-btn" id="info-btn" aria-label="How to play">?</button>
   </header>
 
@@ -824,6 +950,10 @@
 
     <div class="result" id="result" hidden>
       <div class="result-affirmation" id="result-affirmation"></div>
+      <div class="hard-upsell" id="hard-upsell" hidden>
+        <p class="hard-upsell-text">Play tomorrow's NOON in Hard Mode</p>
+        <button class="hard-upsell-btn" id="hard-upsell-btn">Turn On Hard Mode</button>
+      </div>
       <div class="result-title" id="result-title"></div>
       <div class="result-sub"   id="result-sub"></div>
       <div class="result-streak">
@@ -12934,10 +13064,32 @@
     const revealIdx   = PUZZLE_DATA.reveal;
     const SOLUTION    = PUZZLE_DATA.words.map(w => [...w]);
     const isCross     = (r, c) => r === revealIdx || c === revealIdx;
+
+    // ── Hard Mode ──
+    // Read saved result first so we restore with the same mode the puzzle was played in
+    let hardMode = localStorage.getItem('noonHardMode') === 'true';
+    let savedResult = null;
+    try {
+      const sr = JSON.parse(localStorage.getItem('noonResult'));
+      if (sr && sr.puzzleIndex === puzzleIndex) {
+        savedResult = sr;
+        hardMode = savedResult.hardMode || false;
+      }
+    } catch {}
+
+    // In Hard Mode only positions 0 and 3 of the cross word are pre-revealed
+    function isCrossRevealed(r, c) {
+      if (!isCross(r, c)) return false;
+      if (!hardMode) return true;
+      if (r === revealIdx && (c === 0 || c === 3)) return true;
+      if (c === revealIdx && (r === 0 || r === 3)) return true;
+      return false;
+    }
+
     const solutionLetters = new Set();
     for (let r = 0; r < 4; r++)
       for (let c = 0; c < 4; c++)
-        if (!isCross(r, c)) solutionLetters.add(SOLUTION[r][c]);
+        if (!isCrossRevealed(r, c)) solutionLetters.add(SOLUTION[r][c]);
 
     document.getElementById('puzzle-num').textContent = `Puzzle #${PUZZLE_NUM}`;
 
@@ -13006,7 +13158,7 @@
         const el = document.createElement('div');
         el.className = 'cell';
         el.id = `cell-${r}-${c}`;
-        if (isCross(r, c)) {
+        if (isCrossRevealed(r, c)) {
           el.classList.add('cross');
           el.textContent = SOLUTION[r][c];
         } else {
@@ -13110,7 +13262,7 @@
       for (let rr = 0; rr < 4; rr++) {
         for (let cc = 0; cc < 4; cc++) {
           if (rr === r && cc === c) continue;
-          if (isCross(rr, cc)) continue;
+          if (isCrossRevealed(rr, cc)) continue;
           if (filled[rr][cc]) continue;
           if (SOLUTION[rr][cc] === letter) {
             setTimeout(() => markCorrect(rr, cc, 'mirror-pop'), delay);
@@ -13151,7 +13303,7 @@
     function checkWin() {
       for (let r = 0; r < 4; r++)
         for (let c = 0; c < 4; c++)
-          if (!isCross(r, c) && !filled[r][c]) return;
+          if (!isCrossRevealed(r, c) && !filled[r][c]) return;
       gameOver = true;
       gameWon  = true;
       let delay = 0;
@@ -13182,7 +13334,7 @@
     function revealSolution() {
       for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
-          if (!isCross(r, c) && !filled[r][c]) {
+          if (!isCrossRevealed(r, c) && !filled[r][c]) {
             const el = document.getElementById(`cell-${r}-${c}`);
             el.textContent = SOLUTION[r][c];
             el.classList.remove('flash-yellow', 'flash-gray');
@@ -13204,6 +13356,7 @@
         puzzleIndex,
         won,
         wrongGuesses,
+        hardMode,
         wasYellow: wasYellow.map(row => [...row]),
         filled:    filled.map(row => [...row])
       }));
@@ -13222,20 +13375,25 @@
         : 'The solution has been revealed';
       document.getElementById('result-streak-current').textContent = s.currentStreak;
       document.getElementById('result-streak-best').textContent    = s.maxStreak;
+
+      // Hard mode upsell — shown when normal mode + strong result
+      if (!hardMode && won && wrongGuesses <= 2) {
+        document.getElementById('hard-upsell').hidden = false;
+      }
     }
 
     // ── Share ──
     function buildShareText() {
       const score  = gameWon ? `${wrongGuesses}/5` : 'X/5';
-      const header = `NOON #${PUZZLE_NUM}  ${score}`;
+      const header = `NOON #${PUZZLE_NUM}  ${score}${hardMode ? '*' : ''}`;
       const rows   = [];
       for (let r = 0; r < 4; r++) {
         const row = [];
         for (let c = 0; c < 4; c++) {
-          if (isCross(r, c))        row.push('⬜');
-          else if (wasYellow[r][c]) row.push('🟨');
-          else if (filled[r][c])    row.push('🟩');
-          else                      row.push('⬛');
+          if (isCrossRevealed(r, c)) row.push('⬜');
+          else if (wasYellow[r][c])  row.push('🟨');
+          else if (filled[r][c])     row.push('🟩');
+          else                       row.push('⬛');
         }
         rows.push(row.join(''));
       }
@@ -13286,25 +13444,21 @@
     });
 
     // ── Restore completed puzzle on revisit ──
-    (function restoreIfCompleted() {
-      let saved;
-      try { saved = JSON.parse(localStorage.getItem('noonResult')); } catch { return; }
-      if (!saved || saved.puzzleIndex !== puzzleIndex) return;
-
-      // Rebuild game-state variables from saved data
+    // (savedResult was read earlier, before grid build, so hardMode is already set correctly)
+    if (savedResult) {
       gameOver     = true;
-      gameWon      = saved.won;
-      wrongGuesses = saved.wrongGuesses;
+      gameWon      = savedResult.won;
+      wrongGuesses = savedResult.wrongGuesses;
       for (let r = 0; r < 4; r++)
         for (let c = 0; c < 4; c++) {
-          wasYellow[r][c] = saved.wasYellow[r][c];
-          filled[r][c]    = saved.filled[r][c];
+          wasYellow[r][c] = savedResult.wasYellow[r][c];
+          filled[r][c]    = savedResult.filled[r][c];
         }
 
-      // Restore grid appearance
+      // Restore grid appearance for all non-pre-revealed cells
       for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
-          if (isCross(r, c)) continue;
+          if (isCrossRevealed(r, c)) continue;
           const el = document.getElementById(`cell-${r}-${c}`);
           el.textContent = SOLUTION[r][c];
           el.classList.add(filled[r][c] ? 'correct' : 'reveal');
@@ -13312,8 +13466,8 @@
       }
 
       // Show result panel (recordCompletion guard prevents double-counting)
-      showResultPanel(saved.won);
-    })();
+      showResultPanel(savedResult.won);
+    }
 
     // ── Countdown ──
     function updateCountdown() {
@@ -13358,6 +13512,37 @@
     });
     statsModal.addEventListener('click', e => {
       if (e.target === statsModal) statsModal.hidden = true;
+    });
+
+    // ── Settings modal ──
+    const settingsModal  = document.getElementById('settings-modal');
+    const hardModeToggle = document.getElementById('hard-mode-toggle');
+    hardModeToggle.checked = hardMode;
+
+    document.getElementById('settings-btn').addEventListener('click', () => {
+      hardModeToggle.checked = hardMode; // reflect live state
+      settingsModal.hidden = false;
+    });
+    document.getElementById('settings-close').addEventListener('click', () => {
+      settingsModal.hidden = true;
+    });
+    settingsModal.addEventListener('click', e => {
+      if (e.target === settingsModal) settingsModal.hidden = true;
+    });
+    hardModeToggle.addEventListener('change', () => {
+      hardMode = hardModeToggle.checked;
+      localStorage.setItem('noonHardMode', hardMode ? 'true' : 'false');
+    });
+
+    // ── Hard mode upsell button ──
+    const upsellBtn = document.getElementById('hard-upsell-btn');
+    upsellBtn.addEventListener('click', () => {
+      if (upsellBtn.classList.contains('confirmed')) return;
+      hardMode = true;
+      localStorage.setItem('noonHardMode', 'true');
+      upsellBtn.textContent = '✓ Hard Mode On';
+      upsellBtn.classList.add('confirmed');
+      hardModeToggle.checked = true; // keep settings toggle in sync
     });
   </script>
 
