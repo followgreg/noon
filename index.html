@@ -13204,11 +13204,26 @@
       const btn = document.getElementById('share-btn');
       const text = buildShareText();
       if (navigator.share) {
-        navigator.share({ title: `NOON #${PUZZLE_NUM}`, text }).catch(() => {});
+        navigator.share({ title: `NOON #${PUZZLE_NUM}`, text })
+          .then(() => {
+            gtag('event', 'share', {
+              method: 'native',
+              puzzle_number: PUZZLE_NUM,
+              outcome: gameWon ? 'win' : 'loss',
+              wrong_guesses: wrongGuesses
+            });
+          })
+          .catch(() => {});
       } else {
         navigator.clipboard.writeText(text).then(() => {
           btn.textContent = 'Copied!';
           setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+          gtag('event', 'share', {
+            method: 'clipboard',
+            puzzle_number: PUZZLE_NUM,
+            outcome: gameWon ? 'win' : 'loss',
+            wrong_guesses: wrongGuesses
+          });
         }).catch(() => {
           btn.textContent = 'Copy failed';
           setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
