@@ -13047,7 +13047,9 @@
     let savedResult = null;
     try {
       const sr = JSON.parse(localStorage.getItem('noonResult'));
-      if (sr && sr.puzzleIndex === puzzleIndex) {
+      // Verify both index AND words match — guards against puzzle reorders
+      if (sr && sr.puzzleIndex === puzzleIndex &&
+          sr.words && sr.words.join(',') === PUZZLE_DATA.words.join(',')) {
         savedResult = sr;
         hardMode = savedResult.hardMode || false;
       }
@@ -13330,6 +13332,7 @@
       // Persist result so revisiting the page restores the completed state
       localStorage.setItem('noonResult', JSON.stringify({
         puzzleIndex,
+        words: PUZZLE_DATA.words,
         won,
         wrongGuesses,
         hardMode,
