@@ -796,6 +796,25 @@
       cursor: default;
     }
 
+    /* ── Live timer ── */
+    .timer-display {
+      font-size: 0.9rem;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .timer-display[hidden] { display: none; }
+
+    /* ── Result time line ── */
+    .result-time {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #888;
+      letter-spacing: 0.02em;
+    }
+    .result-time[hidden] { display: none; }
+
     @media (max-width: 360px) {
       :root { --cell: 60px; }
       .pk-key { width: 30px; height: 42px; font-size: 0.78rem; }
@@ -842,6 +861,14 @@
         <div class="stat-box">
           <div class="stat-value" id="stat-winrate">0%</div>
           <div class="stat-label">Win Rate</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-best-time">—</div>
+          <div class="stat-label">Best Time</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-value" id="stat-last-time">—</div>
+          <div class="stat-label">Last Time</div>
         </div>
       </div>
       <button class="modal-btn" id="stats-close">Done</button>
@@ -948,8 +975,11 @@
       </div>
     </div>
 
+    <div class="timer-display" id="timer-display" hidden>0:00</div>
+
     <div class="result" id="result" hidden>
       <div class="result-affirmation" id="result-affirmation"></div>
+      <div class="result-time" id="result-time" hidden></div>
       <div class="hard-upsell" id="hard-upsell" hidden>
         <p class="hard-upsell-text">Play tomorrow's NOON in Hard Mode</p>
         <button class="hard-upsell-btn" id="hard-upsell-btn">Turn On Hard Mode</button>
@@ -13097,8 +13127,15 @@
           (puzzleIndex === 0 && s.lastPuzzleIndex === PUZZLES.length - 1);
         s.currentStreak = isConsecutive ? s.currentStreak + 1 : 1;
         s.maxStreak = Math.max(s.maxStreak, s.currentStreak);
+        if (timerElapsed > 0 && (!s.bestTime || timerElapsed < s.bestTime)) {
+          s.bestTime = timerElapsed;
+        }
       } else {
         s.currentStreak = 0;
+      }
+      if (timerElapsed > 0) {
+        s.lastTime = timerElapsed;
+        s.lastTimeDisplay = formatTime(timerElapsed);
       }
       s.lastPuzzleIndex = puzzleIndex;
       saveStats(s);
@@ -13110,10 +13147,12 @@
       const winRate = s.totalPlayed > 0
         ? Math.round((s.totalWon / s.totalPlayed) * 100) + '%'
         : '0%';
-      document.getElementById('stat-streak').textContent  = s.currentStreak;
-      document.getElementById('stat-max').textContent     = s.maxStreak;
-      document.getElementById('stat-played').textContent  = s.totalPlayed;
-      document.getElementById('stat-winrate').textContent = winRate;
+      document.getElementById('stat-streak').textContent    = s.currentStreak;
+      document.getElementById('stat-max').textContent       = s.maxStreak;
+      document.getElementById('stat-played').textContent    = s.totalPlayed;
+      document.getElementById('stat-winrate').textContent   = winRate;
+      document.getElementById('stat-best-time').textContent = s.bestTime ? formatTime(s.bestTime) : '—';
+      document.getElementById('stat-last-time').textContent = s.lastTimeDisplay || '—';
     }
 
     // ── Game state ──
@@ -13126,6 +13165,40 @@
     let gameOver = false;
     let gameWon  = false;
     let selected = null;
+
+    // ── Timer ──
+    let timerStarted  = false;
+    let timerRunning  = false;
+    let timerStart    = 0;
+    let timerElapsed  = 0;
+    let timerInterval = null;
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${String(s).padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+      if (timerStarted) return;
+      timerStarted = true;
+      timerRunning = true;
+      timerStart   = Date.now();
+      const el = document.getElementById('timer-display');
+      el.hidden = false;
+      el.textContent = '0:00';
+      timerInterval = setInterval(() => {
+        el.textContent = formatTime(Math.floor((Date.now() - timerStart) / 1000));
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (!timerRunning) return;
+      timerRunning = false;
+      timerElapsed = Math.floor((Date.now() - timerStart) / 1000);
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
 
     // ── Build grid ──
     const gridEl   = document.getElementById('grid');
@@ -13151,6 +13224,7 @@
       if (gameOver) return;
       if (filled[r][c]) return;
       if (el.classList.contains('flash-yellow') || el.classList.contains('flash-gray')) return;
+      startTimer();
       if (selected && selected.r === r && selected.c === c) { deselect(); return; }
       if (selected) selected.el.classList.remove('selected');
       selected = { r, c, el };
@@ -13284,6 +13358,7 @@
           if (!isCrossRevealed(r, c) && !filled[r][c]) return;
       gameOver = true;
       gameWon  = true;
+      stopTimer();
       let delay = 0;
       for (let r = 0; r < 4; r++) {
         for (let c = 0; c < 4; c++) {
@@ -13301,6 +13376,7 @@
     function checkLose() {
       if (wrongGuesses < MAX_WRONG) return;
       gameOver = true;
+      stopTimer();
       gridEl.classList.add('shake');
       gridEl.addEventListener('animationend', () => gridEl.classList.remove('shake'), { once: true });
       setTimeout(() => {
@@ -13355,6 +13431,16 @@
       document.getElementById('result-streak-current').textContent = s.currentStreak;
       document.getElementById('result-streak-best').textContent    = s.maxStreak;
 
+      // Solve time
+      const timeEl = document.getElementById('result-time');
+      const timeDisplay = s.lastTimeDisplay || null;
+      if (timeDisplay) {
+        timeEl.textContent = won ? `Solved in ${timeDisplay}` : `Time: ${timeDisplay}`;
+        timeEl.hidden = false;
+      } else {
+        timeEl.hidden = true;
+      }
+
       // Hard mode upsell — shown when normal mode + strong result
       if (!hardMode && won && wrongGuesses <= 2) {
         document.getElementById('hard-upsell').hidden = false;
@@ -13363,8 +13449,10 @@
 
     // ── Share ──
     function buildShareText() {
-      const score  = gameWon ? `${wrongGuesses}/5` : 'X/5';
-      const header = `NOON #${PUZZLE_NUM}  ${score}${hardMode ? '*' : ''}`;
+      const score   = gameWon ? `${wrongGuesses}/5` : 'X/5';
+      const s       = loadStats();
+      const timeStr = s.lastTimeDisplay ? ` ${s.lastTimeDisplay}` : '';
+      const header  = `NOON #${PUZZLE_NUM}  ${score}${hardMode ? '*' : ''}${timeStr}`;
       const rows   = [];
       for (let r = 0; r < 4; r++) {
         const row = [];
