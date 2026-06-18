@@ -278,7 +278,14 @@
       color: #fff;
     }
     .rcell.correct { background: var(--green); }
-    .rcell.wrong   { background: #333; color: #555; }
+    .rcell.wrong   { background: var(--surface); color: var(--text); }
+
+    .result-tile-count {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
+      letter-spacing: 0.03em;
+    }
 
     /* Answer box (shown on loss) */
     .answer-box {
@@ -620,6 +627,7 @@
       <div class="result-streak"  id="result-streak"  hidden></div>
       <div class="result-sub"     id="result-sub"></div>
       <div class="result-grid"    id="result-grid"></div>
+      <p class="result-tile-count" id="result-tile-count" hidden></p>
       <div class="answer-box"     id="answer-box" hidden>
         <div class="answer-label">The answer</div>
         <div class="answer-words" id="answer-words"></div>
@@ -847,11 +855,13 @@
     const WIN_AFFIRMATIONS = { 3: 'FLAWLESS', 4: 'SHARP', 5: 'NAILED IT' };
 
     function showResult(won, submittedGrid) {
-      // Color main grid cells
+      // Reveal solved grid: every cell shows the correct letter.
+      // Tiles the player placed correctly → green. Others → neutral locked style.
       for (let i = 0; i < 16; i++) {
         const cell = document.getElementById(`cell-${i}`);
         cell.classList.remove('selected');
-        cell.classList.add(submittedGrid[i] === SOLVED[i] ? 'correct' : 'wrong');
+        cell.textContent = SOLVED[i];
+        if (submittedGrid[i] === SOLVED[i]) cell.classList.add('correct');
       }
 
       // Populate result panel
@@ -875,24 +885,22 @@
 
       document.getElementById('result-sub').textContent = won
         ? `${REQUIRED_SWAPS} swaps · ${PUZZLE_DATA.words.join(' · ')}`
-        : `${correctCount} of 16 tiles placed correctly`;
+        : '';
 
-      // Mini result grid
+      // Mini result grid: solved letters, green for correct positions, neutral for wrong
       const rg = document.getElementById('result-grid');
       rg.innerHTML = '';
       for (let i = 0; i < 16; i++) {
         const rc = document.createElement('div');
         rc.className = 'rcell ' + (submittedGrid[i] === SOLVED[i] ? 'correct' : 'wrong');
-        rc.textContent = submittedGrid[i];
+        rc.textContent = SOLVED[i];
         rg.appendChild(rc);
       }
 
-      // Solution reveal on loss
-      if (!won) {
-        const answerBox = document.getElementById('answer-box');
-        answerBox.hidden = false;
-        document.getElementById('answer-words').textContent = PUZZLE_DATA.words.join(' · ');
-      }
+      // Tile count below grid
+      const countEl = document.getElementById('result-tile-count');
+      countEl.textContent = `${correctCount} of 16 correct`;
+      countEl.hidden = false;
     }
 
     // ── Restore submitted state on revisit ────────────────────────────────────
