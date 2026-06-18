@@ -426,6 +426,13 @@
     }
     footer span { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; text-align: center; }
 
+    .result-streak {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--accent);
+      text-align: center;
+    }
+
     @media (max-width: 360px) {
       :root { --cell: 60px; }
     }
@@ -492,6 +499,7 @@
 
     <div class="result" id="result" hidden>
       <div class="result-heading" id="result-heading"></div>
+      <div class="result-streak"  id="result-streak"  hidden></div>
       <div class="result-sub"     id="result-sub"></div>
       <div class="result-grid"    id="result-grid"></div>
       <div class="answer-box"     id="answer-box" hidden>
@@ -528,7 +536,20 @@
     const SOLVED         = PUZZLE_DATA.words.join('').split('');
     const INITIAL_GRID   = PUZZLE_DATA.scrambled.split('');
 
+    // ── Cookie helpers ───────────────────────────────────────────────────────
+    function setCookie(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + days * 86400000);
+      document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    }
+    function getCookie(name) {
+      const v = document.cookie.split('; ').find(r => r.startsWith(name + '='));
+      return v ? decodeURIComponent(v.split('=')[1]) : null;
+    }
+
     // ── Check for already-submitted result ───────────────────────────────────
+    const alreadyPlayedToday = parseInt(getCookie('scrambleLastPuzzle')) === PUZZLE_NUM;
+
     let savedResult = null;
     try {
       const sr = JSON.parse(localStorage.getItem('scrambleResult'));
@@ -539,36 +560,43 @@
     } catch {}
 
     // ── Game state ───────────────────────────────────────────────────────────
-    let grid        = [...INITIAL_GRID];
-    let swapHistory = [];
-    let swapCount   = 0;
-    let selected    = null;
-    let submitted   = false;
+    let grid             = [...INITIAL_GRID];
+    let swapHistory      = [];
+    let swapCount        = 0;
+    let selected         = null;
+    let submitted        = false;
+    let completionResult = null;
 
-    // ── Stats ────────────────────────────────────────────────────────────────
-    function defaultStats() {
-      return { currentStreak: 0, maxStreak: 0, lastPuzzleIndex: null, totalPlayed: 0, totalWon: 0 };
-    }
+    // ── Stats (cookie-based, 1-year expiry) ──────────────────────────────────
     function loadStats() {
-      try { return JSON.parse(localStorage.getItem('scrambleStats')) || defaultStats(); }
-      catch { return defaultStats(); }
+      return {
+        currentStreak: parseInt(getCookie('scrambleStreak'))     || 0,
+        maxStreak:     parseInt(getCookie('scrambleMaxStreak'))  || 0,
+        lastPuzzle:    getCookie('scrambleLastPuzzle') !== null ? parseInt(getCookie('scrambleLastPuzzle')) : null,
+        totalPlayed:   parseInt(getCookie('scrambleTotalPlayed')) || 0,
+        totalWon:      parseInt(getCookie('scrambleTotalWon'))    || 0,
+      };
     }
-    function saveStats(s) { localStorage.setItem('scrambleStats', JSON.stringify(s)); }
+    function saveStats(s) {
+      setCookie('scrambleStreak',      s.currentStreak, 365);
+      setCookie('scrambleMaxStreak',   s.maxStreak,     365);
+      setCookie('scrambleLastPuzzle',  s.lastPuzzle,    365);
+      setCookie('scrambleTotalPlayed', s.totalPlayed,   365);
+      setCookie('scrambleTotalWon',    s.totalWon,      365);
+    }
 
     function recordCompletion(won) {
       const s = loadStats();
-      if (s.lastPuzzleIndex === PUZZLE_INDEX) return s;
+      if (s.lastPuzzle === PUZZLE_NUM) return s;
       s.totalPlayed++;
       if (won) {
         s.totalWon++;
-        const consecutive = s.lastPuzzleIndex === PUZZLE_INDEX - 1 ||
-          (PUZZLE_INDEX === 0 && s.lastPuzzleIndex === SCRAMBLE_META.total - 1);
-        s.currentStreak = consecutive ? s.currentStreak + 1 : 1;
+        s.currentStreak = (s.lastPuzzle === PUZZLE_NUM - 1) ? s.currentStreak + 1 : 1;
         s.maxStreak = Math.max(s.maxStreak, s.currentStreak);
       } else {
         s.currentStreak = 0;
       }
-      s.lastPuzzleIndex = PUZZLE_INDEX;
+      s.lastPuzzle = PUZZLE_NUM;
       saveStats(s);
       return s;
     }
@@ -682,6 +710,7 @@
       btnUndo.disabled = btnSubmit.disabled = true;
 
       const won = grid.join('') === SOLVED.join('');
+      completionResult = { won };
 
       const s = recordCompletion(won);
       localStorage.setItem('scrambleResult', JSON.stringify({
@@ -716,6 +745,15 @@
         ? (WIN_AFFIRMATIONS[REQUIRED_SWAPS] || 'SOLVED!')
         : 'NOT SOLVED';
 
+      const streakEl = document.getElementById('result-streak');
+      const sc = loadStats();
+      if (won && sc.currentStreak >= 1) {
+        streakEl.textContent = `🔥 ${sc.currentStreak} day streak`;
+        streakEl.hidden = false;
+      } else {
+        streakEl.hidden = true;
+      }
+
       document.getElementById('result-sub').textContent = won
         ? `${REQUIRED_SWAPS} swaps · ${PUZZLE_DATA.words.join(' · ')}`
         : `${correctCount} of 16 tiles placed correctly`;
@@ -740,9 +778,10 @@
 
     // ── Restore submitted state on revisit ────────────────────────────────────
     if (savedResult) {
-      submitted = true;
-      grid      = savedResult.submittedGrid;
-      swapCount = savedResult.swapCount;
+      submitted        = true;
+      grid             = savedResult.submittedGrid;
+      swapCount        = savedResult.swapCount;
+      completionResult = { won: savedResult.solved };
 
       renderGrid();
       counterText.textContent = `Swap ${swapCount} of ${REQUIRED_SWAPS}`;
@@ -754,41 +793,39 @@
       document.querySelectorAll('.cell').forEach(c => c.classList.add('locked'));
 
       showResult(savedResult.solved, savedResult.submittedGrid);
+    } else if (alreadyPlayedToday) {
+      submitted = true;
+      btnUndo.disabled = btnSubmit.disabled = true;
+      document.querySelectorAll('.cell').forEach(c => c.classList.add('locked'));
+      resultEl.hidden = false;
+      resultEl.dataset.outcome = 'lose';
+      document.getElementById('result-heading').textContent = 'ALREADY PLAYED';
+      document.getElementById('result-streak').hidden       = true;
+      document.getElementById('result-sub').textContent     = 'Come back tomorrow for the next puzzle.';
+      document.getElementById('share-btn').style.display    = 'none';
     } else {
       updateCounter();
     }
 
     // ── Share ─────────────────────────────────────────────────────────────────
     function buildShareText() {
-      const won      = savedResult ? savedResult.solved : grid.join('') === SOLVED.join('');
-      const outcome  = won ? '✓' : '✗';
-      const usedGrid = savedResult ? savedResult.submittedGrid : grid;
-      const rows     = [];
-      for (let r = 0; r < 4; r++) {
-        const row = [];
-        for (let c = 0; c < 4; c++) {
-          const i = r * 4 + c;
-          row.push(usedGrid[i] === SOLVED[i] ? '🟩' : '⬛');
-        }
-        rows.push(row.join(''));
-      }
-      return `SCRAMBLE #${PUZZLE_NUM}  ${outcome}  ${REQUIRED_SWAPS} swaps\n\n${rows.join('\n')}\n\nhttps://NoonWords.com/scramble`;
+      if (!completionResult) return '';
+      const { won } = completionResult;
+      const s = loadStats();
+      const streakLine = (won && s.currentStreak >= 1) ? `\n🔥 ${s.currentStreak} day streak` : '';
+      return `SCRAMBLE #${PUZZLE_NUM}\n${won ? 'SOLVED' : 'NOT SOLVED'}${streakLine}\n\nhttps://NoonWords.com/scramble`;
     }
 
     document.getElementById('share-btn').addEventListener('click', () => {
       const btn  = document.getElementById('share-btn');
       const text = buildShareText();
-      if (navigator.share) {
-        navigator.share({ title: `SCRAMBLE #${PUZZLE_NUM}`, text }).catch(() => {});
-      } else {
-        navigator.clipboard.writeText(text).then(() => {
-          btn.textContent = 'Copied!';
-          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
-        }).catch(() => {
-          btn.textContent = 'Copy failed';
-          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
-        });
-      }
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+      }).catch(() => {
+        btn.textContent = 'Copy failed';
+        setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+      });
     });
 
     // ── Countdown ─────────────────────────────────────────────────────────────
