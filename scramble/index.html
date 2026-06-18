@@ -278,7 +278,7 @@
       color: #fff;
     }
     .rcell.correct { background: var(--green); }
-    .rcell.wrong   { background: var(--surface); color: var(--text); }
+    .rcell.wrong   { background: var(--surface); color: var(--muted); }
 
     .result-tile-count {
       font-size: 0.82rem;
@@ -887,13 +887,13 @@
         ? `${REQUIRED_SWAPS} swaps · ${PUZZLE_DATA.words.join(' · ')}`
         : '';
 
-      // Mini result grid: solved letters, green for correct positions, neutral for wrong
+      // Mini result grid: player's submitted letters, green for correct positions, muted for wrong
       const rg = document.getElementById('result-grid');
       rg.innerHTML = '';
       for (let i = 0; i < 16; i++) {
         const rc = document.createElement('div');
         rc.className = 'rcell ' + (submittedGrid[i] === SOLVED[i] ? 'correct' : 'wrong');
-        rc.textContent = SOLVED[i];
+        rc.textContent = submittedGrid[i];
         rg.appendChild(rc);
       }
 
