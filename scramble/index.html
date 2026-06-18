@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCRAMBLE – Daily Word Square</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%231C1C1C'/><text y='72' x='50' font-size='56' text-anchor='middle' fill='%23F0B429' font-family='monospace' font-weight='800'>S</text></svg>">
+  <meta name="theme-color" content="#1C1C1C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SCRAMBLE">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #1C1C1C;
+      --surface: #2A2A2A;
+      --border:  #3D3D3D;
+      --text:    #EBEBEB;
+      --muted:   #666;
+      --accent:  #F0B429;
+      --green:   #6AAA64;
+      --red:     #E05A5A;
+      --cell:    72px;
+      --gap:     6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 480px;
+      padding: 20px 16px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .icon-btn {
+      position: absolute;
+      top: 16px;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: manipulation;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .icon-btn:hover { border-color: var(--muted); color: var(--text); }
+    .stats-btn { left: 16px; }
+    .info-btn  { right: 16px; font-size: 0.88rem; font-weight: 700; }
+
+    .game-title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      color: var(--accent);
+      line-height: 1;
+    }
+
+    .puzzle-num {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    .header-tagline {
+      font-size: 0.64rem;
+      color: var(--muted);
+      letter-spacing: 0.07em;
+    }
+
+    /* ── Main ── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+      padding: 28px 16px 40px;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, var(--cell));
+      grid-template-rows:    repeat(4, var(--cell));
+      gap: var(--gap);
+    }
+
+    .cell {
+      width: var(--cell);
+      height: var(--cell);
+      border: 2px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s;
+      touch-action: manipulation;
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 0 0px rgba(240,180,41,0);    border-color: var(--accent); }
+      50%       { box-shadow: 0 0 0 4px rgba(240,180,41,0.18); border-color: #f8d26a; }
+    }
+    .cell.selected {
+      border-color: var(--accent);
+      background: #2F2C22;
+      animation: glow-pulse 1.6s ease-in-out infinite;
+    }
+
+    .cell.correct { background: var(--green); border-color: var(--green); color: #fff; cursor: default; }
+    .cell.wrong   { background: #2A1818;      border-color: var(--red);   color: var(--red); cursor: default; }
+    .cell.locked  { cursor: default; }
+
+    /* ── Swap counter ── */
+    .counter-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .counter-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .counter-dots { display: flex; gap: 8px; }
+
+    .cdot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.18s, transform 0.18s;
+    }
+    .cdot.done { background: var(--accent); transform: scale(1.15); }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn-undo {
+      flex: 1;
+      padding: 13px 0;
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: border-color 0.12s, color 0.12s;
+    }
+    .btn-undo:not(:disabled):hover { border-color: var(--muted); color: var(--text); }
+    .btn-undo:disabled { opacity: 0.28; cursor: default; }
+
+    .btn-submit {
+      flex: 2;
+      padding: 13px 0;
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: #1C1C1C;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity 0.12s, background 0.15s, color 0.15s;
+    }
+    .btn-submit:disabled {
+      background: var(--surface);
+      color: #444;
+      cursor: default;
+    }
+    .btn-submit:not(:disabled):active { opacity: 0.8; }
+
+    /* ── Result panel ── */
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      width: 100%;
+      max-width: 360px;
+      animation: fade-up 0.35s ease;
+    }
+    .result[hidden] { display: none; }
+
+    .result-heading {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .result[data-outcome="win"]  .result-heading { color: var(--accent); }
+    .result[data-outcome="lose"] .result-heading { color: var(--text); }
+
+    .result-sub {
+      font-size: 0.84rem;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Result mini-grid */
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 56px);
+      gap: 4px;
+    }
+
+    .rcell {
+      width: 56px;
+      height: 56px;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .rcell.correct { background: var(--green); }
+    .rcell.wrong   { background: #333; color: #555; }
+
+    /* Answer box (shown on loss) */
+    .answer-box {
+      background: #252525;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 20px;
+      width: 100%;
+      text-align: center;
+    }
+    .answer-box[hidden] { display: none; }
+    .answer-label {
+      font-size: 0.62rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .answer-words {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.06em;
+    }
+
+    .share-btn {
+      padding: 10px 28px;
+      background: var(--accent);
+      color: #1C1C1C;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .share-btn:active { opacity: 0.75; }
+
+    .result-countdown {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: var(--bg);
+      padding: 7px 16px;
+      border-radius: 4px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      opacity: 0;
+      transition: opacity 0.15s;
+      pointer-events: none;
+      white-space: nowrap;
+      z-index: 100;
+    }
+    .toast.visible { opacity: 1; }
+
+    /* ── Modals ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 24px;
+    }
+    .modal-overlay[hidden] { display: none; }
+
+    .modal-card {
+      background: #272727;
+      border: 1px solid #404040;
+      border-radius: 12px;
+      padding: 28px 24px 24px;
+      max-width: 340px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px; right: 14px;
+      background: transparent; border: none;
+      color: var(--muted); font-size: 1.3rem; line-height: 1;
+      cursor: pointer; padding: 4px 6px; touch-action: manipulation;
+    }
+    .modal-close:hover { color: var(--text); }
+
+    .modal-title {
+      font-size: 1rem; font-weight: 700;
+      letter-spacing: 0.12em; color: var(--accent);
+      text-transform: uppercase; text-align: center;
+    }
+
+    .modal-line {
+      font-size: 0.82rem; color: var(--muted);
+      text-align: center; line-height: 1.6;
+    }
+    .modal-line strong { color: var(--text); }
+
+    .modal-btn {
+      width: 100%; padding: 12px;
+      background: var(--accent); color: #1C1C1C;
+      border: none; border-radius: 6px;
+      font-family: 'Inter', sans-serif; font-size: 0.9rem;
+      font-weight: 700; cursor: pointer; touch-action: manipulation;
+    }
+
+    /* ── Stats modal ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: #1E1E1E;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 10px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+    }
+    .stat-value { font-size: 2rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .stat-label {
+      font-size: 0.6rem; color: var(--muted);
+      letter-spacing: 0.1em; text-transform: uppercase; text-align: center;
+    }
+
+    /* ── Footer ── */
+    footer {
+      width: 100%; max-width: 480px;
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 4px;
+    }
+    footer span { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; text-align: center; }
+
+    @media (max-width: 360px) {
+      :root { --cell: 60px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- How to play -->
+  <div class="modal-overlay" id="how-to-play">
+    <div class="modal-card">
+      <button class="modal-close" id="modal-close">&#x2715;</button>
+      <div class="modal-title">How to Play</div>
+      <div class="modal-line"><strong>Unscramble the word square.</strong></div>
+      <div class="modal-line">Every word must read the same across and down — tap any two tiles to swap them.</div>
+      <div class="modal-line"><strong>You have a set number of swaps.</strong> Use them all, then hit Submit. The number changes each day.</div>
+      <div class="modal-line">You'll see exactly how many swaps are needed. Plan your moves.</div>
+      <div class="modal-line">One puzzle per day. No retries.</div>
+      <button class="modal-btn" id="modal-got-it">Got it</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="modal-overlay" id="stats-modal" hidden>
+    <div class="modal-card">
+      <div class="modal-title">Statistics</div>
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Current Streak</div></div>
+        <div class="stat-box"><div class="stat-value" id="stat-max">0</div><div class="stat-label">Best Streak</div></div>
+        <div class="stat-box"><div class="stat-value" id="stat-played">0</div><div class="stat-label">Played</div></div>
+        <div class="stat-box"><div class="stat-value" id="stat-winrate">0%</div><div class="stat-label">Win Rate</div></div>
+      </div>
+      <button class="modal-btn" id="stats-close">Done</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <header>
+    <button class="icon-btn stats-btn" id="stats-btn" aria-label="Statistics">
+      <svg width="14" height="12" viewBox="0 0 14 12" fill="none">
+        <rect x="0" y="7" width="3" height="5" fill="currentColor" rx="0.5"/>
+        <rect x="5" y="3" width="3" height="9" fill="currentColor" rx="0.5"/>
+        <rect x="10" y="0" width="3" height="12" fill="currentColor" rx="0.5"/>
+      </svg>
+    </button>
+    <div class="game-title">SCRAMBLE</div>
+    <p class="puzzle-num" id="puzzle-num">Puzzle #–</p>
+    <p class="header-tagline" id="header-tagline">Daily Word Square</p>
+    <button class="icon-btn info-btn" id="info-btn" aria-label="How to play">?</button>
+  </header>
+
+  <main>
+    <div class="grid" id="grid"></div>
+
+    <div class="counter-wrap">
+      <div class="counter-text" id="counter-text">Swap 0 of –</div>
+      <div class="counter-dots" id="counter-dots"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-undo"   id="btn-undo"   disabled>&#8617; Undo</button>
+      <button class="btn-submit" id="btn-submit" disabled>Submit</button>
+    </div>
+
+    <div class="result" id="result" hidden>
+      <div class="result-heading" id="result-heading"></div>
+      <div class="result-sub"     id="result-sub"></div>
+      <div class="result-grid"    id="result-grid"></div>
+      <div class="answer-box"     id="answer-box" hidden>
+        <div class="answer-label">The answer</div>
+        <div class="answer-words" id="answer-words"></div>
+      </div>
+      <button class="share-btn" id="share-btn">Share result</button>
+      <p class="result-countdown">Next Scramble: <span id="countdown">--:--:--</span></p>
+    </div>
+  </main>
+
+  <footer>
+    <span>SCRAMBLE · Daily Word Square</span>
+    <span>&#169; 2026 Never Stop Creating, LLC</span>
+  </footer>
+
+  <script>
+    // ── Puzzle bank ──────────────────────────────────────────────────────────
+    const SCRAMBLE_META    = {"total":300,"offset":150};
+    const SCRAMBLE_PUZZLES = [{"words":["TILT","IDEA","LEAN","TANG"],"swaps":3,"scrambled":"TILTIDALEEATNANG"},{"words":["MINE","IDEA","NEAR","EARL"],"swaps":4,"scrambled":"AENMIDEANERREIAL"},{"words":["GOAD","ONCE","ACME","DEED"],"swaps":5,"scrambled":"GOAAEDOEDCEEDCMN"},{"words":["TALL","ALOE","LONE","LEER"],"swaps":4,"scrambled":"NALOALORLLTEEELE"},{"words":["ICES","CART","ERGO","STOP"],"swaps":5,"scrambled":"ICEOCGRTTRSAESOP"},{"words":["OAFS","AREA","FEEL","SALT"],"swaps":4,"scrambled":"OAFSSARAFELLAEET"},{"words":["MASS","ACHE","SHOE","SEEK"],"swaps":5,"scrambled":"OCAEHSAESHMESESK"},{"words":["LOSS","OBOE","SOLE","SEEP"],"swaps":3,"scrambled":"EOSSOBOLSOLSEEPE"},{"words":["CALM","AQUA","LUCK","MAKE"],"swaps":3,"scrambled":"CAUMAQEALUKKMACL"},{"words":["CLAM","LIME","AMPS","MESA"],"swaps":4,"scrambled":"MLAMLEMECIPSAMSA"},{"words":["SLAM","LIME","AMPS","MESH"],"swaps":5,"scrambled":"MLESMIMLASPAMESH"},{"words":["PAST","ALTO","STEP","TOPS"],"swaps":4,"scrambled":"PAAOOLTTSETPTSPS"},{"words":["HARD","ALOE","ROPE","DEED"],"swaps":5,"scrambled":"HEDDPEOERDALREAO"},{"words":["HOLD","OBOE","LOIN","DENT"],"swaps":4,"scrambled":"HOTDONOELONLDEIB"},{"words":["WYES","YOGA","EGOS","SASH"],"swaps":5,"scrambled":"HWESGOYEGAOSSASY"},{"words":["PART","ALOE","ROLL","TELL"],"swaps":3,"scrambled":"RTROALOEPALLTELL"},{"words":["PARS","ALOE","ROBE","SEEM"],"swaps":3,"scrambled":"PARSELOAREBSOEEM"},{"words":["HIGH","ISLE","GLEE","HEED"],"swaps":4,"scrambled":"HHGEILLEGSDEHEIE"},{"words":["TAMP","AQUA","MUTT","PATH"],"swaps":5,"scrambled":"UPMPAATQMTAUTATH"},{"words":["SHED","HERO","ERGO","DOOM"],"swaps":4,"scrambled":"SHEDHEMOOOOEDGRR"},{"words":["DELI","EPIC","LIFE","ICES"],"swaps":5,"scrambled":"DELFIIPCLECEISEI"},{"words":["BREW","ROVE","EVIL","WELL"],"swaps":4,"scrambled":"BREWVLVEIERLWELO"},{"words":["THAT","HULA","ALAS","TASK"],"swaps":5,"scrambled":"ASATTULTAKASLAHH"},{"words":["HOPE","OVAL","PASS","ELSE"],"swaps":3,"scrambled":"HOPEOSPLAALSEVSE"},{"words":["LARK","ALOE","ROBE","KEEP"],"swaps":3,"scrambled":"LARKELOAPOEEKBER"},{"words":["OVER","VILE","ELSE","REED"],"swaps":4,"scrambled":"OVERERLDELEEISEV"},{"words":["OAFS","AXLE","FLOE","SEEK"],"swaps":5,"scrambled":"LAXOAELEFSOEFESK"},{"words":["FAIL","ACRE","IRON","LENS"],"swaps":4,"scrambled":"FNILECRLRIONAEAS"},{"words":["IFFY","FLUE","FUEL","YELL"],"swaps":5,"scrambled":"FLFYFLYEIULUEEFL"},{"words":["BOLT","OBOE","LOAN","TENT"],"swaps":4,"scrambled":"NTLTOBOTLONBEEAO"},{"words":["WEAR","ERGO","AGED","RODE"],"swaps":5,"scrambled":"WOGRERRAEGODAEDE"},{"words":["BLUE","LONG","UNDO","EGOS"],"swaps":3,"scrambled":"LLOBEONGUNDOEGUS"},{"words":["GRAB","RACE","ACTS","BEST"],"swaps":3,"scrambled":"GSCBRATEACTSBERA"},{"words":["PROP","ROBE","OBOE","PEER"],"swaps":4,"scrambled":"PROPREBEEOEOPOBR"},{"words":["KICK","ICON","CORE","KNEW"],"swaps":5,"scrambled":"KWCKIIENCOONKREC"},{"words":["GRAB","RACE","ACRE","BEES"],"swaps":4,"scrambled":"RRABGCEEACSEBEAR"},{"words":["BASH","ANTI","STAR","HIRE"],"swaps":5,"scrambled":"TAANASBIHTERHIRS"},{"words":["BREW","RAVE","EVIL","WELL"],"swaps":4,"scrambled":"BRWWERVEEVIEALLL"},{"words":["FAWN","ALOE","WORE","NEED"],"swaps":5,"scrambled":"OAOEFLNWWARENEED"},{"words":["HALL","AQUA","LUCK","LAKE"],"swaps":3,"scrambled":"LALHAEULLUCKAAKQ"},{"words":["DAMP","ALOE","MOTE","PEER"],"swaps":3,"scrambled":"DOMPAEALMOTRPEEE"},{"words":["PASS","ALTO","STEM","SOME"],"swaps":4,"scrambled":"PAATSOTLSSEOSMME"},{"words":["LAND","AREA","NEAT","DATA"],"swaps":5,"scrambled":"LEDRANAANEATTDAA"},{"words":["SWAP","WELL","ALSO","PLOT"],"swaps":4,"scrambled":"SLOPWLSEALWAPLOT"},{"words":["FACT","ALOE","CONE","TEEM"],"swaps":5,"scrambled":"FATEAMCETONEOECL"},{"words":["DIAL","IDLE","ALPS","LESS"],"swaps":4,"scrambled":"EDAESDLLALPILISS"},{"words":["PUMP","USER","MEMO","PROW"],"swaps":5,"scrambled":"MSPPEOURPEMOMRUW"},{"words":["TROD","ROBE","OBOE","DEEP"],"swaps":3,"scrambled":"ORODRTPBOEOEDEEB"},{"words":["RAMP","AREA","MEOW","PAWN"],"swaps":3,"scrambled":"PAMRWREAOEMAPAWN"},{"words":["CLOD","LAME","OMEN","DENY"],"swaps":4,"scrambled":"ACODLEMEOMLNDEYN"},{"words":["SLAT","LAME","AMPS","TEST"],"swaps":5,"scrambled":"SLSTAMAEAEPLTSMT"},{"words":["TAMP","ALOE","MOVE","PEER"],"swaps":4,"scrambled":"PVMPALEEAOMETEOR"},{"words":["BREW","ROVE","EVIL","WELT"],"swaps":5,"scrambled":"BLEWEOVRWVREEILT"},{"words":["ARCS","REAP","CAFE","SPED"],"swaps":4,"scrambled":"RACASERECAFESPPD"},{"words":["FONT","OBOE","NOUN","TENT"],"swaps":5,"scrambled":"BOOFNOOENTUTNENT"},{"words":["MASK","AKIN","SIZE","KNEW"],"swaps":3,"scrambled":"MSAIAKINSKKEZNEW"},{"words":["ALTO","LORD","TRUE","ODES"],"swaps":3,"scrambled":"ALTOTUROLRDEODES"},{"words":["MOSS","ORAL","SAGA","SLAB"],"swaps":4,"scrambled":"MSOSORALAGALSSAB"},{"words":["BATH","ACRE","TRUE","HEEL"],"swaps":5,"scrambled":"BHLEACRATREEUHET"},{"words":["BARD","AREA","REFS","DASH"],"swaps":4,"scrambled":"BARAAFEDERRSDSAH"},{"words":["BABE","AGAR","BASS","ERST"],"swaps":5,"scrambled":"EBSBAAARBSSGERAT"},{"words":["OAFS","ACRE","FREE","SEEM"],"swaps":4,"scrambled":"EAFEASREFCEOSREM"},{"words":["LIFT","IDEA","FERN","TANG"],"swaps":5,"scrambled":"NIFTRDEANTIGEAFL"},{"words":["BASS","ANTI","STUN","SING"],"swaps":3,"scrambled":"BISSANNSATUTSING"},{"words":["AMPS","MAUL","PUPA","SLAB"],"swaps":3,"scrambled":"AMPSBALLPUPASMAU"},{"words":["BACK","ALOE","CODE","KEEN"],"swaps":4,"scrambled":"LAOKABCENODCKEEE"},{"words":["FACT","ABLE","CLAN","TENT"],"swaps":5,"scrambled":"EABTCNLECLAATTNF"},{"words":["LIMB","IDEA","MEAT","BATH"],"swaps":4,"scrambled":"LEMTITDAMEABBAIH"},{"words":["CLAN","LONE","ANTE","NEED"],"swaps":5,"scrambled":"NEAELCNEANTLNODE"},{"words":["ZERO","EVEN","REAL","ONLY"],"swaps":4,"scrambled":"ZERVYLENREALNOOE"},{"words":["SCAN","CARE","AREA","NEAT"],"swaps":5,"scrambled":"AACNECREATEANASR"},{"words":["DRAB","ROLE","ALOE","BEEN"],"swaps":3,"scrambled":"ORABDOLELAREBEEN"},{"words":["LARD","AREA","REAR","DARK"],"swaps":3,"scrambled":"RARADREAKEARDALR"},{"words":["BOND","OBOE","NODE","DEEP"],"swaps":4,"scrambled":"BEODOEOEBNDNDOEP"},{"words":["ODDS","DEAL","DATA","SLAT"],"swaps":5,"scrambled":"ADDSDALALEOASDTT"},{"words":["FIST","INTO","STAR","TORE"],"swaps":4,"scrambled":"RISTONTFSRAOTITE"},{"words":["STAR","TAME","AMEN","RENT"],"swaps":5,"scrambled":"SEAMTAMTATNNRERE"},{"words":["VAST","AREA","SELL","TALK"],"swaps":4,"scrambled":"VASTALEAELSRKALT"},{"words":["LAST","ANTE","STAR","TERM"],"swaps":5,"scrambled":"LARSAETETTARNTMS"},{"words":["PINT","IDEA","NEWS","TASK"],"swaps":3,"scrambled":"PINTETEANIWSDAKS"},{"words":["ZEST","EXPO","SPUR","TORN"],"swaps":3,"scrambled":"ZESTENPOSRPRTOUX"},{"words":["CHEF","HALL","ELSE","FLEE"],"swaps":4,"scrambled":"CHLFAEESHLLEFLEE"},{"words":["HARD","ALOE","ROSE","DEED"],"swaps":5,"scrambled":"HADOEOLERRDADEES"},{"words":["FAST","ANTE","STUN","TENT"],"swaps":4,"scrambled":"NTSAATTSETUNFENT"},{"words":["WORD","OBOE","ROLL","DELI"],"swaps":5,"scrambled":"RWRDOOOBEODLLELI"},{"words":["COAT","ONCE","ACHE","TEEM"],"swaps":4,"scrambled":"AOHTOACENCCETEME"},{"words":["BONE","OVER","NEWS","ERST"],"swaps":5,"scrambled":"BONEROSENRWVESET"},{"words":["NODS","OMIT","DIKE","STEW"],"swaps":3,"scrambled":"NODWOIITSMKESTED"},{"words":["JAPE","AQUA","PUBS","EAST"],"swaps":3,"scrambled":"JAPTAQPBUUASEASE"},{"words":["FAME","APEX","MESA","EXAM"],"swaps":4,"scrambled":"FMAEAPEXEMASXEAM"},{"words":["LIST","IDEA","SELL","TALE"],"swaps":5,"scrambled":"SISEIELALELDTATL"},{"words":["WALL","AREA","LENS","LAST"],"swaps":4,"scrambled":"WALLARAELSAENLST"},{"words":["FIGS","IDLE","GLEE","SEEP"],"swaps":5,"scrambled":"GGEISDLEFLEESIPE"},{"words":["VALE","AREA","LEIS","EAST"],"swaps":4,"scrambled":"SALEAREALEITAVSE"},{"words":["TWIN","WADE","IDLE","NEED"],"swaps":5,"scrambled":"EEINWDDTEELANIWD"},{"words":["MOLD","OBOE","LOIN","DENY"],"swaps":3,"scrambled":"YOLOOBDELDINOENM"},{"words":["BOSH","ONTO","STUN","HONE"],"swaps":3,"scrambled":"SOSHONNOBTUTOHNE"},{"words":["PAST","AREA","SEAM","TAMP"],"swaps":4,"scrambled":"PASAEAEASTAMTRPM"},{"words":["WILL","IDEA","LEAN","LAND"],"swaps":5,"scrambled":"DILLLNEAAEIDLAWN"},{"words":["FLAT","LINE","ANTE","TEEM"],"swaps":4,"scrambled":"EIATLMNNAETETFEL"},{"words":["BATH","ALOE","TOLL","HELM"],"swaps":5,"scrambled":"BOTLALEHTHALOELM"},{"words":["PATH","ALOE","TOLL","HELD"],"swaps":4,"scrambled":"PDTHLAOATOLLLEHE"},{"words":["USES","SALE","ELSE","SEED"],"swaps":5,"scrambled":"USLASEEEESSDSEEL"},{"words":["JUMP","USER","MESA","PRAY"],"swaps":3,"scrambled":"JUMPASERPESARMUY"},{"words":["PLUS","LORE","URGE","SEEM"],"swaps":3,"scrambled":"PLURLOREUEGSESEM"},{"words":["DAYS","ALOE","YORE","SEEM"],"swaps":4,"scrambled":"DAOSASYEYEORLEEM"},{"words":["AWED","WILE","ELSE","DEEP"],"swaps":5,"scrambled":"AEWEPLLEEISWDEED"},{"words":["LAST","AQUA","SUDS","TASK"],"swaps":4,"scrambled":"UQSAAAUTSKDSTASL"},{"words":["LAMB","AGAR","MATE","BREW"],"swaps":5,"scrambled":"LREGABAATAMEWRMB"},{"words":["CALL","AREA","LEAK","LAKE"],"swaps":4,"scrambled":"CAELLAAALLAKERKE"},{"words":["DASH","ABLE","SLUR","HERO"],"swaps":5,"scrambled":"ADEAESLBSLURHHRO"},{"words":["EMIT","MACE","ICON","TEND"],"swaps":3,"scrambled":"EEITMOMEICANTCND"},{"words":["MENU","EVEN","NEAT","UNTO"],"swaps":3,"scrambled":"MVNUTEENNETAUNEO"},{"words":["PLOT","LIME","OMEN","TEND"],"swaps":4,"scrambled":"LPOTELMNOMIETEND"},{"words":["BEST","EXPO","SPIN","TONG"],"swaps":5,"scrambled":"OEXTPSEBOSINTPNG"},{"words":["WORN","OBOE","ROSE","NEED"],"swaps":4,"scrambled":"EERNOBOEWOSNREOD"},{"words":["AMPS","MALL","PLEA","SLAB"],"swaps":5,"scrambled":"ABMSMAPPLLLASLAE"},{"words":["SCAM","COME","AMEN","MENU"],"swaps":4,"scrambled":"UCEMEOMCAMANMSNE"},{"words":["CLOD","LAVE","OVAL","DELI"],"swaps":5,"scrambled":"VLODLAVEIOCLDEAL"},{"words":["GIFT","IDEA","FELL","TALL"],"swaps":3,"scrambled":"FIFTIDELGAELTALL"},{"words":["OVUM","VALE","ULNA","MEAT"],"swaps":3,"scrambled":"OVTMLAUEULNAMEAV"},{"words":["SLAP","LONE","ANTE","PEEP"],"swaps":4,"scrambled":"PNAPLOAEENTESLEP"},{"words":["SMUG","MALL","ULNA","GLAD"],"swaps":5,"scrambled":"SMUGAMLLUAGNDLAL"},{"words":["CRAM","RARE","ARCS","MESA"],"swaps":4,"scrambled":"ERAMACRARRASMESC"},{"words":["SLOW","LOVE","OVER","WERE"],"swaps":5,"scrambled":"OLSVWOWEERERLEVO"},{"words":["GASP","AGAR","SAKE","PREY"],"swaps":4,"scrambled":"GAGYASAESAPRPREK"},{"words":["CRAM","RAGE","AGAR","MERE"],"swaps":5,"scrambled":"CEAMRRGAGERRMEAA"},{"words":["AMEN","MOPE","EPIC","NECK"],"swaps":3,"scrambled":"AEENMOPECPMCNIEK"},{"words":["BALM","AREA","LENS","MASS"],"swaps":3,"scrambled":"BALMARSALEENSAMS"},{"words":["RICH","IDLE","CLUE","HEEL"],"swaps":4,"scrambled":"REIHIDLCELUHEECL"},{"words":["LAST","AGAR","SAME","TREE"],"swaps":5,"scrambled":"RASTAMEASAGTELRE"},{"words":["BRAT","RODE","ADDS","TEST"],"swaps":4,"scrambled":"DSRTADOEADBSTERT"},{"words":["WARD","AREA","REST","DATE"],"swaps":5,"scrambled":"SARDTEEARETDWAAR"},{"words":["EGOS","GIVE","OVAL","SELF"],"swaps":4,"scrambled":"EGOEGVSELIAOSVLF"},{"words":["ORBS","ROOT","BONE","STEW"],"swaps":5,"scrambled":"OOBSRRTEOENBSTOW"},{"words":["FAIL","AIDE","IDEA","LEAF"],"swaps":3,"scrambled":"IAILAAFEIDEFLEAD"},{"words":["BLOW","LAVE","OVEN","WEND"],"swaps":3,"scrambled":"BAODLLNEOVEVWENW"},{"words":["THEM","HAVE","EVIL","MELT"],"swaps":4,"scrambled":"VMAMHELEETIVHELT"},{"words":["PAPA","AGAR","PART","ARTY"],"swaps":5,"scrambled":"PGPAAPARTTAAARRY"},{"words":["SNOB","NINE","ONCE","BEEF"],"swaps":4,"scrambled":"SNBFNNOEINCEBEEO"},{"words":["TAPE","APEX","PEEP","EXPO"],"swaps":5,"scrambled":"TEPOEXAPPEPEAXPE"},{"words":["SHOE","HEAL","OAFS","ELSE"],"swaps":4,"scrambled":"SHOEOEAAHFLSELES"},{"words":["AMOK","MIDI","ODDS","KISS"],"swaps":5,"scrambled":"AMSIIIDDOSDMKKOS"},{"words":["BASH","AREA","SEEN","HANK"],"swaps":3,"scrambled":"BASHARAAEENNHESK"},{"words":["ARMS","RAIN","MICA","SNAP"],"swaps":3,"scrambled":"ARMSRASNPICAIANM"},{"words":["CLOT","LOVE","OVEN","TEND"],"swaps":4,"scrambled":"CLOOLTVEODETVENN"},{"words":["DRAB","ROLE","ALOE","BEEF"],"swaps":5,"scrambled":"RLADBOROABEELEEF"},{"words":["FLAT","LACE","ACRE","TEEM"],"swaps":4,"scrambled":"FLAALRCETEAMTCEE"},{"words":["UNIT","NICE","ICON","TEND"],"swaps":5,"scrambled":"NNITNECDINOUTEIC"},{"words":["SAKE","AMID","KING","EDGY"],"swaps":4,"scrambled":"SAKEIDAMYKNGEDGI"},{"words":["GASH","ALTO","STEW","HOWL"],"swaps":5,"scrambled":"TASHAWGSOTELHLOW"},{"words":["WISH","ISLE","SLUR","HERE"],"swaps":3,"scrambled":"HISWILSELSURHERE"},{"words":["SCAM","CAME","AMEN","MENU"],"swaps":3,"scrambled":"CAAMCAMESMEEMNNU"},{"words":["DRAW","RICH","ACHE","WHET"],"swaps":4,"scrambled":"DRAWCICHEHREWAHT"},{"words":["TAIL","AIDE","IDEA","LEAF"],"swaps":5,"scrambled":"FIALATLAIDEADEEI"},{"words":["VAST","AREA","SEEK","TAKE"],"swaps":4,"scrambled":"SRSTAKEAVEETAAKE"},{"words":["OARS","ALOE","ROPE","SEEP"],"swaps":5,"scrambled":"OAERAPOSLOPESERE"},{"words":["SLAM","LACE","ACTS","MESA"],"swaps":4,"scrambled":"ATSMAACEACMSLESL"},{"words":["KNOB","NINE","ONCE","BEES"],"swaps":5,"scrambled":"ONBBOIEENNENKCES"},{"words":["KNOW","NONE","ONES","WEST"],"swaps":3,"scrambled":"KNNWWOOENNESOEST"},{"words":["ODDS","DEEP","DELI","SPIN"],"swaps":3,"scrambled":"ODDEDSEPDELPISIN"},{"words":["SPAN","PINE","ANEW","NEWS"],"swaps":4,"scrambled":"SPENPSEEANAWNWNI"},{"words":["SELF","EVIL","LIFE","FLEA"],"swaps":5,"scrambled":"SFLFAVLELIEEFELI"},{"words":["OATS","ALOE","TORN","SEND"],"swaps":4,"scrambled":"OATSNOLTEORDSEAN"},{"words":["ACTS","CHOP","TONE","SPED"],"swaps":5,"scrambled":"AOSECHCPPONEDTTS"},{"words":["FARM","AQUA","RUTS","MASS"],"swaps":4,"scrambled":"FATMARURAUSQMASS"},{"words":["ARMS","REEL","MEMO","SLOW"],"swaps":5,"scrambled":"ORLSREOLMEMAMESW"},{"words":["CALM","AREA","LEER","MARE"],"swaps":3,"scrambled":"CALMEREMRAELAARE"},{"words":["WRIT","RARE","IRON","TENT"],"swaps":3,"scrambled":"TRIWRIEEARONTRNT"},{"words":["ALTO","LOOP","TORE","OPEN"],"swaps":4,"scrambled":"ALOOLRETTOOPOPEN"},{"words":["JADE","AREA","DEAR","EARN"],"swaps":5,"scrambled":"JAAAAREAREEDDREN"},{"words":["JOLT","OBOE","LONE","TEEM"],"swaps":4,"scrambled":"LOLOJBTEONOETEEM"},{"words":["ALTO","LOIN","TINT","ONTO"],"swaps":5,"scrambled":"OIIONOLNTTNTATLO"},{"words":["CLAP","LOGO","AGES","POSH"],"swaps":4,"scrambled":"COAPLLGSHGESPAOO"},{"words":["FAIR","AIDE","IDEA","REAL"],"swaps":5,"scrambled":"FAILEIDDEEARAIAR"},{"words":["HALF","AFAR","LATE","FREE"],"swaps":3,"scrambled":"AHLFAFAREATFLREE"},{"words":["SHOE","HEAR","OAFS","ERST"],"swaps":3,"scrambled":"HHOOSRAEEAFSERST"},{"words":["PLOP","LANE","ONCE","PEEL"],"swaps":4,"scrambled":"ELPALNPEONCEOPEL"},{"words":["CHOW","HAVE","OVEN","WEND"],"swaps":5,"scrambled":"CWVHHEEAOONNWVED"},{"words":["PARS","ALOE","ROPE","SEEM"],"swaps":4,"scrambled":"PSLAEROEEOPRSEAM"},{"words":["TUFT","UGLY","FLOP","TYPO"],"swaps":5,"scrambled":"PUTPUGLFFLOYOYTT"},{"words":["BEAT","ERGO","AGAR","TORN"],"swaps":4,"scrambled":"BTATORGOEGERAARN"},{"words":["SOLD","OBOE","LOSE","DEED"],"swaps":5,"scrambled":"SEDDOOOSBOLEDEEL"},{"words":["SNAP","NINE","ANTE","PEEP"],"swaps":3,"scrambled":"SNNPNAIEANEEPETP"},{"words":["TANG","AREA","NEWS","GASH"],"swaps":3,"scrambled":"SARGANEANETWGASH"},{"words":["FLAW","LORE","AREA","WEAK"],"swaps":4,"scrambled":"RLARLWOEAFEAWAEK"},{"words":["HALE","AREA","LEIS","EAST"],"swaps":5,"scrambled":"LAEEARELIHSAEAST"},{"words":["RAID","ANTI","ITEM","DIME"],"swaps":4,"scrambled":"ERMDMNTIITAIDIAE"},{"words":["HONK","OBOE","NONE","KEEN"],"swaps":5,"scrambled":"EOBKOKOENONEHNNE"},{"words":["PALM","AREA","LEIS","MASK"],"swaps":4,"scrambled":"PAKMEREAALISLASM"},{"words":["HARD","ALOE","ROPE","DEEM"],"swaps":5,"scrambled":"HRRDELOEAOMPEDEA"},{"words":["BAAS","AXLE","ALOE","SEEK"],"swaps":3,"scrambled":"BASAOXLKALAESEEE"},{"words":["CASH","AXLE","SLUR","HERO"],"swaps":3,"scrambled":"CASHEXLOSAURHLRE"},{"words":["SLAB","LORE","ARMS","BEST"],"swaps":4,"scrambled":"SLAELSRBTRMBOESA"},{"words":["ADDS","DRIP","DIKE","SPEW"],"swaps":5,"scrambled":"ADDIERSPDKIEDPWS"},{"words":["JABS","AQUA","BUNG","SAGE"],"swaps":4,"scrambled":"JABSUQUANGBGAASE"},{"words":["TALL","ALOE","LODE","LEER"],"swaps":5,"scrambled":"TELLLALEEODLAEOR"},{"words":["POST","ONCE","SCAN","TEND"],"swaps":4,"scrambled":"EOSTOPNNCCANTESD"},{"words":["FLAW","LOGO","AGAR","WORD"],"swaps":5,"scrambled":"FLGGLOWAAWODAORR"},{"words":["FOLK","OBOE","LOVE","KEEP"],"swaps":3,"scrambled":"POLKOEOEOLVEKBEF"},{"words":["DRAW","RULE","ALPS","WEST"],"swaps":3,"scrambled":"DRAPSULETLWRWESA"},{"words":["HASH","ABLE","SLUR","HERO"],"swaps":4,"scrambled":"HSHHSBOEALURAERL"},{"words":["GROW","RAVE","OVER","WERE"],"swaps":5,"scrambled":"GREERRVROVAEWWOE"},{"words":["POPS","OBOE","POLE","SEEP"],"swaps":4,"scrambled":"PBOSOEPEPOOESELP"},{"words":["WAKE","APEX","KELP","EXPO"],"swaps":5,"scrambled":"WXKEPKAXEEEPLAPO"},{"words":["GOLD","OBOE","LOAN","DENY"],"swaps":4,"scrambled":"GOLDOBOANLEDOENY"},{"words":["TIDE","IDEA","DEAR","EARN"],"swaps":5,"scrambled":"EIAERDNIDEDRTAAE"},{"words":["CAST","AREA","SELL","TALL"],"swaps":3,"scrambled":"SAATARLASEELTCLL"},{"words":["PAPA","AVOW","POKE","AWED"],"swaps":3,"scrambled":"PKPAAVOEPOWEAWAD"},{"words":["KNEW","NAVE","EVEN","WEND"],"swaps":4,"scrambled":"NNEWVAKNEWENVEED"},{"words":["SPUR","PORE","URGE","REEL"],"swaps":5,"scrambled":"UPLURORESREERGEP"},{"words":["SPRY","PLEA","REAR","YARD"],"swaps":4,"scrambled":"SRRRPYEAREAAYPLD"},{"words":["SWAM","WINE","ANTE","MEET"],"swaps":5,"scrambled":"ESAMWNTNAETEMWEI"},{"words":["ANEW","NAVE","EVEN","WENT"],"swaps":4,"scrambled":"ENVVNAEWEEANWENT"},{"words":["CRAM","RULE","ALMS","MESA"],"swaps":5,"scrambled":"MRAMRALCALEMUESS"},{"words":["SPAN","PURE","AREA","NEAT"],"swaps":3,"scrambled":"SPRNEPAEARUANEAT"},{"words":["POST","OBOE","SOLE","TEEM"],"swaps":3,"scrambled":"TOSTOLOOSEBEPEEM"},{"words":["GOLF","OBOE","LOON","FEND"],"swaps":4,"scrambled":"EOGFOBONLOOFNELD"},{"words":["TILL","IDEA","LENS","LAST"],"swaps":5,"scrambled":"TTLLIEAELDILSASN"},{"words":["FLOP","LONE","ONCE","PEEP"],"swaps":4,"scrambled":"FLOPLPOEENOENCEP"},{"words":["DASH","ABLE","SLAM","HEME"],"swaps":5,"scrambled":"DHMAALBELSAEHESM"},{"words":["CASE","AQUA","SUDS","EAST"],"swaps":4,"scrambled":"CQESSSUASUDAEAAT"},{"words":["PIGS","IDLE","GLEE","SEEM"],"swaps":5,"scrambled":"PLLEIDIMGEESSGEE"},{"words":["OARS","ATOP","ROVE","SPEW"],"swaps":3,"scrambled":"OSRSVTOPREAOAPEW"},{"words":["PODS","ORAL","DATA","SLAT"],"swaps":3,"scrambled":"LRDSOOALDATASPTA"},{"words":["SALE","APEX","LEAP","EXPO"],"swaps":4,"scrambled":"LAPPEAEXLEASEXPO"},{"words":["WOLF","OVAL","LAVE","FLEW"],"swaps":5,"scrambled":"WLFLOVAELAVLEFOW"},{"words":["NEWS","EMIT","WIRE","STEP"],"swaps":4,"scrambled":"WINSEMIWTPRESTEE"},{"words":["DRIP","RUSE","ISLE","PEER"],"swaps":5,"scrambled":"DIEPRSRLISEEPUER"},{"words":["VAST","ANTE","STUN","TENT"],"swaps":4,"scrambled":"SASTNNTUVAENTETT"},{"words":["CALF","AREA","LEIS","FAST"],"swaps":5,"scrambled":"EAFLATCALEFSIRSA"},{"words":["MOSS","OMIT","SIZE","STEM"],"swaps":3,"scrambled":"MOSSOMITZISEESTM"},{"words":["BLAB","LORE","AREA","BEAM"],"swaps":3,"scrambled":"BLBEAORBAREALEAM"},{"words":["WRAP","REDO","ADDS","POSH"],"swaps":4,"scrambled":"WEAPRASORDDSOPDH"},{"words":["WARM","ALOE","ROLL","MELT"],"swaps":5,"scrambled":"LARMWEOERLTAMOLL"},{"words":["SCAN","CAVE","AVOW","NEWT"],"swaps":4,"scrambled":"VSACCANWAVOWNEET"},{"words":["LAST","ALOE","SOME","TEEM"],"swaps":5,"scrambled":"MAETELMSSOEETALO"},{"words":["SLAT","LACE","ACHE","TEEM"],"swaps":4,"scrambled":"SEATAECELCHTALEM"},{"words":["ALAS","LULL","ALTO","SLOP"],"swaps":5,"scrambled":"LSLAAUSLLLTOLAOP"},{"words":["ERGO","RAIN","GIST","ONTO"],"swaps":3,"scrambled":"EIGONAINTRSGORTO"},{"words":["WOLF","OBOE","LONE","FEET"],"swaps":3,"scrambled":"FOLWOBEELONEFTEO"},{"words":["JABS","AQUA","BUNG","SAGA"],"swaps":4,"scrambled":"JBBSASUQAUNGAAAG"},{"words":["MARK","AKIN","RICE","KNEW"],"swaps":5,"scrambled":"MAIIKAKRERCEKNNW"},{"words":["CORD","OBOE","ROPE","DEED"],"swaps":4,"scrambled":"OORBOEPEROCEDDED"},{"words":["TALC","AQUA","LUFF","CAFE"],"swaps":5,"scrambled":"TCLFAQUAUFCALAFE"},{"words":["MAUL","ALSO","USER","LORE"],"swaps":4,"scrambled":"LAUEALROUSELMOSR"},{"words":["DRAW","RICH","ACRE","WHET"],"swaps":5,"scrambled":"HAERDICHACREWWRT"},{"words":["TONG","OVAL","NAVE","GLEN"],"swaps":3,"scrambled":"TOEGOVALENVNGLAN"},{"words":["GASH","ALOE","SORE","HEED"],"swaps":3,"scrambled":"RAAHDLOESOGEHEES"},{"words":["FLAB","LACE","ACRE","BEES"],"swaps":4,"scrambled":"ECABLALFACEESREB"},{"words":["COST","ONCE","SCAN","TEND"],"swaps":5,"scrambled":"COSCTTCNEOANESND"},{"words":["HALF","AGAR","LAKE","FREE"],"swaps":4,"scrambled":"AHEFEGARLFKAAREL"},{"words":["FLEA","LOAN","EAST","ANTE"],"swaps":5,"scrambled":"FEEALANEAALTONTS"},{"words":["AMPS","MELT","PLEA","STAY"],"swaps":4,"scrambled":"MTLSAELMYPEASTAP"},{"words":["RASP","AFAR","SAGE","PREY"],"swaps":5,"scrambled":"RFSAAPEGSARAYREP"},{"words":["THAT","HOLE","ALMS","TEST"],"swaps":3,"scrambled":"MSATHOTEALLSTEHT"},{"words":["FLAB","LULL","ALSO","BLOW"],"swaps":3,"scrambled":"LLABLALLULOOBFSW"},{"words":["HARM","AREA","REND","MADE"],"swaps":4,"scrambled":"RRHAAREMDENAMADE"},{"words":["FORM","OBOE","ROAM","MEMO"],"swaps":5,"scrambled":"RORMOMOAOOMMBEEF"},{"words":["HARD","ALOE","ROPE","DEEP"],"swaps":4,"scrambled":"DRPHDLOEROAEAEEP"},{"words":["GASP","AFAR","SAVE","PREY"],"swaps":5,"scrambled":"AYSVAFGRPASEPAER"},{"words":["MOCK","OBOE","COAL","KELP"],"swaps":4,"scrambled":"MKCEPBOCOOALKELO"},{"words":["BORE","OVER","REFS","ERST"],"swaps":5,"scrambled":"SOVEBERFRERSEROT"},{"words":["ERGO","RUIN","GIST","ONTO"],"swaps":3,"scrambled":"ERNORUIGGSITTNOO"},{"words":["WARD","AREA","RENT","DATA"],"swaps":3,"scrambled":"WATDAREERANTAARD"},{"words":["MOSS","OVAL","SAGA","SLAP"],"swaps":4,"scrambled":"MGPSAVSLSAOASLAO"},{"words":["CALM","AREA","LEAD","MADE"],"swaps":5,"scrambled":"ACLAERMELAEDMADA"},{"words":["FROM","RARE","ORAL","MELT"],"swaps":4,"scrambled":"EFRLRARROOALMEMT"},{"words":["POND","OBOE","NONE","DEEM"],"swaps":5,"scrambled":"POEMOENENODBNOED"},{"words":["SELF","EVIL","LIME","FLEX"],"swaps":4,"scrambled":"SLIFEIVLLXMEFLEE"},{"words":["DRAB","RARE","AREA","BEAM"],"swaps":5,"scrambled":"DBBMAAREAAERREAR"},{"words":["REAL","ERGO","AGES","LOST"],"swaps":3,"scrambled":"REALEROSALEGGOST"},{"words":["OATS","ALOE","TONE","SEEK"],"swaps":3,"scrambled":"OATSELOETOSKNAEE"},{"words":["FORK","OBOE","ROLE","KEEP"],"swaps":4,"scrambled":"OOLKORFEBOREEKEP"},{"words":["PAPA","AFAR","PALM","ARMY"],"swaps":5,"scrambled":"PAMRARAFAYLMPAPA"},{"words":["LIST","IDEA","SEAL","TALL"],"swaps":4,"scrambled":"AISTLEEAIDALTLLS"},{"words":["RAGS","AREA","GEEK","SAKE"],"swaps":5,"scrambled":"EAGKARSEGARESAEK"},{"words":["GASP","ALTO","STUN","POND"],"swaps":4,"scrambled":"GAPDALTUSTPNSONO"},{"words":["AHEM","HAVE","EVEN","MENU"],"swaps":5,"scrambled":"AHMMEEVUNVENEEAH"},{"words":["VILE","IDEA","LEER","EARN"],"swaps":3,"scrambled":"VILEADNELEIREARE"},{"words":["HERB","EVIL","RIFE","BLEW"],"swaps":3,"scrambled":"LERBEVILEIFHBERW"},{"words":["BABE","AVID","BIOG","EDGE"],"swaps":4,"scrambled":"BAVEADIDGBOIEBGE"},{"words":["SWAP","WALL","ALSO","PLOY"],"swaps":5,"scrambled":"SWALAPSLALOOPLWY"},{"words":["LARD","ALOE","ROPE","DEEM"],"swaps":4,"scrambled":"PARLADOEEMLRDEEO"},{"words":["SLAM","LAME","AMEN","MENU"],"swaps":5,"scrambled":"NNASLAMEEMAMLEMU"},{"words":["TRUE","RING","UNDO","EGOS"],"swaps":4,"scrambled":"TROEOUNGUNDIESRG"},{"words":["SNOW","NAVE","OVEN","WENT"],"swaps":5,"scrambled":"VNNOEANEOVWSWENT"},{"words":["DAYS","ATOP","YORE","SPED"],"swaps":3,"scrambled":"DDYPATOPYOREASES"},{"words":["BLAH","LACE","ACRE","HEEL"],"swaps":3,"scrambled":"CLAHEABEACHLREEL"},{"words":["STEM","TALE","ELSE","MEET"],"swaps":4,"scrambled":"SLEMTTEAEESEMELT"},{"words":["AMOK","MERE","ORAL","KELP"],"swaps":5,"scrambled":"AEOKORLEMMAEKRLP"},{"words":["PARK","ALOE","ROVE","KEEP"],"swaps":4,"scrambled":"EAPVALOEREKPKOER"},{"words":["MALL","AREA","LEER","LARD"],"swaps":5,"scrambled":"MLLREREADEAALLRA"},{"words":["LIMP","IDEA","MEAL","PALM"],"swaps":4,"scrambled":"LIMMIDEALPPLEAMA"},{"words":["PLUS","LORE","URGE","SEED"],"swaps":5,"scrambled":"PLUELGEEDROSSURE"},{"words":["PARD","AQUA","RUST","DATE"],"swaps":3,"scrambled":"UARDEQUARPSTTADA"},{"words":["OATS","ACRE","TRUE","SEEM"],"swaps":3,"scrambled":"OETSATRCERUASEEM"},{"words":["BLOB","LANE","ONCE","BEEN"],"swaps":4,"scrambled":"NBOBLABNOECELNEE"},{"words":["RICH","ISLE","CLAM","HEME"],"swaps":5,"scrambled":"SICEEELICRAMHHML"},{"words":["LASH","AREA","SEAL","HALE"],"swaps":4,"scrambled":"SAHAARELLEAHSALE"}];
+
+    // ── Puzzle selection (same noon ET reset as NOON) ────────────────────────
+    const LAUNCH = new Date('2026-05-20T12:00:00-04:00').getTime();
+
+    function getPuzzleInfo() {
+      const days  = Math.floor((Date.now() - LAUNCH) / 86400000);
+      const index = (days + SCRAMBLE_META.offset) % SCRAMBLE_META.total;
+      return { days, index, number: days + 1 };
+    }
+
+    const { days: PUZZLE_DAYS, index: PUZZLE_INDEX, number: PUZZLE_NUM } = getPuzzleInfo();
+    const PUZZLE_DATA    = SCRAMBLE_PUZZLES[PUZZLE_INDEX];
+    const REQUIRED_SWAPS = PUZZLE_DATA.swaps;
+    const SOLVED         = PUZZLE_DATA.words.join('').split('');
+    const INITIAL_GRID   = PUZZLE_DATA.scrambled.split('');
+
+    // ── Check for already-submitted result ───────────────────────────────────
+    let savedResult = null;
+    try {
+      const sr = JSON.parse(localStorage.getItem('scrambleResult'));
+      if (sr && sr.puzzleIndex === PUZZLE_INDEX &&
+          sr.words && sr.words.join(',') === PUZZLE_DATA.words.join(',')) {
+        savedResult = sr;
+      }
+    } catch {}
+
+    // ── Game state ───────────────────────────────────────────────────────────
+    let grid        = [...INITIAL_GRID];
+    let swapHistory = [];
+    let swapCount   = 0;
+    let selected    = null;
+    let submitted   = false;
+
+    // ── Stats ────────────────────────────────────────────────────────────────
+    function defaultStats() {
+      return { currentStreak: 0, maxStreak: 0, lastPuzzleIndex: null, totalPlayed: 0, totalWon: 0 };
+    }
+    function loadStats() {
+      try { return JSON.parse(localStorage.getItem('scrambleStats')) || defaultStats(); }
+      catch { return defaultStats(); }
+    }
+    function saveStats(s) { localStorage.setItem('scrambleStats', JSON.stringify(s)); }
+
+    function recordCompletion(won) {
+      const s = loadStats();
+      if (s.lastPuzzleIndex === PUZZLE_INDEX) return s;
+      s.totalPlayed++;
+      if (won) {
+        s.totalWon++;
+        const consecutive = s.lastPuzzleIndex === PUZZLE_INDEX - 1 ||
+          (PUZZLE_INDEX === 0 && s.lastPuzzleIndex === SCRAMBLE_META.total - 1);
+        s.currentStreak = consecutive ? s.currentStreak + 1 : 1;
+        s.maxStreak = Math.max(s.maxStreak, s.currentStreak);
+      } else {
+        s.currentStreak = 0;
+      }
+      s.lastPuzzleIndex = PUZZLE_INDEX;
+      saveStats(s);
+      return s;
+    }
+
+    function populateStatsModal() {
+      const s = loadStats();
+      const wr = s.totalPlayed > 0 ? Math.round(s.totalWon / s.totalPlayed * 100) + '%' : '0%';
+      document.getElementById('stat-streak').textContent  = s.currentStreak;
+      document.getElementById('stat-max').textContent     = s.maxStreak;
+      document.getElementById('stat-played').textContent  = s.totalPlayed;
+      document.getElementById('stat-winrate').textContent = wr;
+    }
+
+    // ── DOM refs ─────────────────────────────────────────────────────────────
+    const gridEl       = document.getElementById('grid');
+    const counterText  = document.getElementById('counter-text');
+    const counterDots  = document.getElementById('counter-dots');
+    const btnUndo      = document.getElementById('btn-undo');
+    const btnSubmit    = document.getElementById('btn-submit');
+    const resultEl     = document.getElementById('result');
+
+    document.getElementById('puzzle-num').textContent     = `Puzzle #${PUZZLE_NUM}`;
+    document.getElementById('header-tagline').textContent = `${REQUIRED_SWAPS}-Swap Challenge`;
+
+    // ── Build grid ───────────────────────────────────────────────────────────
+    for (let i = 0; i < 16; i++) {
+      const el = document.createElement('div');
+      el.className = 'cell';
+      el.id = `cell-${i}`;
+      el.textContent = grid[i];
+      el.addEventListener('click', () => handleCellClick(i));
+      gridEl.appendChild(el);
+    }
+
+    // ── Build swap counter dots ──────────────────────────────────────────────
+    for (let i = 0; i < REQUIRED_SWAPS; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'cdot';
+      dot.id = `cdot-${i}`;
+      counterDots.appendChild(dot);
+    }
+
+    // ── UI update helpers ────────────────────────────────────────────────────
+    function updateCounter() {
+      counterText.textContent = `Swap ${swapCount} of ${REQUIRED_SWAPS}`;
+      for (let i = 0; i < REQUIRED_SWAPS; i++) {
+        document.getElementById(`cdot-${i}`).classList.toggle('done', i < swapCount);
+      }
+      btnUndo.disabled   = swapHistory.length === 0 || submitted;
+      btnSubmit.disabled = swapCount !== REQUIRED_SWAPS || submitted;
+    }
+
+    function renderGrid() {
+      for (let i = 0; i < 16; i++) {
+        document.getElementById(`cell-${i}`).textContent = grid[i];
+      }
+    }
+
+    function setSelected(idx) {
+      if (selected !== null) {
+        document.getElementById(`cell-${selected}`).classList.remove('selected');
+      }
+      selected = idx;
+      if (idx !== null) {
+        document.getElementById(`cell-${idx}`).classList.add('selected');
+      }
+    }
+
+    // ── Cell interaction ─────────────────────────────────────────────────────
+    function handleCellClick(idx) {
+      if (submitted) return;
+
+      if (selected === null) {
+        setSelected(idx);
+        return;
+      }
+
+      if (selected === idx) {
+        setSelected(null);
+        return;
+      }
+
+      // Swap
+      const a = selected, b = idx;
+      setSelected(null);
+      [grid[a], grid[b]] = [grid[b], grid[a]];
+      swapHistory.push([a, b]);
+      swapCount++;
+
+      renderGrid();
+      updateCounter();
+    }
+
+    // ── Undo ─────────────────────────────────────────────────────────────────
+    btnUndo.addEventListener('click', () => {
+      if (submitted || swapHistory.length === 0) return;
+      setSelected(null);
+      const [a, b] = swapHistory.pop();
+      [grid[a], grid[b]] = [grid[b], grid[a]];
+      swapCount--;
+      renderGrid();
+      updateCounter();
+    });
+
+    // ── Submit ────────────────────────────────────────────────────────────────
+    btnSubmit.addEventListener('click', () => {
+      if (submitted || swapCount !== REQUIRED_SWAPS) return;
+      submitted = true;
+      setSelected(null);
+      document.querySelectorAll('.cell').forEach(c => c.classList.add('locked'));
+      btnUndo.disabled = btnSubmit.disabled = true;
+
+      const won = grid.join('') === SOLVED.join('');
+
+      const s = recordCompletion(won);
+      localStorage.setItem('scrambleResult', JSON.stringify({
+        puzzleIndex:   PUZZLE_INDEX,
+        words:         PUZZLE_DATA.words,
+        submittedGrid: [...grid],
+        solved:        won,
+        swapCount
+      }));
+
+      showResult(won, grid);
+    });
+
+    // ── Show result ───────────────────────────────────────────────────────────
+    const WIN_AFFIRMATIONS = { 3: 'FLAWLESS', 4: 'SHARP', 5: 'NAILED IT' };
+
+    function showResult(won, submittedGrid) {
+      // Color main grid cells
+      for (let i = 0; i < 16; i++) {
+        const cell = document.getElementById(`cell-${i}`);
+        cell.classList.remove('selected');
+        cell.classList.add(submittedGrid[i] === SOLVED[i] ? 'correct' : 'wrong');
+      }
+
+      // Populate result panel
+      resultEl.hidden = false;
+      resultEl.dataset.outcome = won ? 'win' : 'lose';
+
+      const correctCount = submittedGrid.filter((c, i) => c === SOLVED[i]).length;
+
+      document.getElementById('result-heading').textContent = won
+        ? (WIN_AFFIRMATIONS[REQUIRED_SWAPS] || 'SOLVED!')
+        : 'NOT SOLVED';
+
+      document.getElementById('result-sub').textContent = won
+        ? `${REQUIRED_SWAPS} swaps · ${PUZZLE_DATA.words.join(' · ')}`
+        : `${correctCount} of 16 tiles placed correctly`;
+
+      // Mini result grid
+      const rg = document.getElementById('result-grid');
+      rg.innerHTML = '';
+      for (let i = 0; i < 16; i++) {
+        const rc = document.createElement('div');
+        rc.className = 'rcell ' + (submittedGrid[i] === SOLVED[i] ? 'correct' : 'wrong');
+        rc.textContent = submittedGrid[i];
+        rg.appendChild(rc);
+      }
+
+      // Solution reveal on loss
+      if (!won) {
+        const answerBox = document.getElementById('answer-box');
+        answerBox.hidden = false;
+        document.getElementById('answer-words').textContent = PUZZLE_DATA.words.join(' · ');
+      }
+    }
+
+    // ── Restore submitted state on revisit ────────────────────────────────────
+    if (savedResult) {
+      submitted = true;
+      grid      = savedResult.submittedGrid;
+      swapCount = savedResult.swapCount;
+
+      renderGrid();
+      counterText.textContent = `Swap ${swapCount} of ${REQUIRED_SWAPS}`;
+      for (let i = 0; i < REQUIRED_SWAPS; i++) {
+        const d = document.getElementById(`cdot-${i}`);
+        if (d) d.classList.add('done');
+      }
+      btnUndo.disabled = btnSubmit.disabled = true;
+      document.querySelectorAll('.cell').forEach(c => c.classList.add('locked'));
+
+      showResult(savedResult.solved, savedResult.submittedGrid);
+    } else {
+      updateCounter();
+    }
+
+    // ── Share ─────────────────────────────────────────────────────────────────
+    function buildShareText() {
+      const won      = savedResult ? savedResult.solved : grid.join('') === SOLVED.join('');
+      const outcome  = won ? '✓' : '✗';
+      const usedGrid = savedResult ? savedResult.submittedGrid : grid;
+      const rows     = [];
+      for (let r = 0; r < 4; r++) {
+        const row = [];
+        for (let c = 0; c < 4; c++) {
+          const i = r * 4 + c;
+          row.push(usedGrid[i] === SOLVED[i] ? '🟩' : '⬛');
+        }
+        rows.push(row.join(''));
+      }
+      return `SCRAMBLE #${PUZZLE_NUM}  ${outcome}  ${REQUIRED_SWAPS} swaps\n\n${rows.join('\n')}\n\nhttps://NoonWords.com/scramble`;
+    }
+
+    document.getElementById('share-btn').addEventListener('click', () => {
+      const btn  = document.getElementById('share-btn');
+      const text = buildShareText();
+      if (navigator.share) {
+        navigator.share({ title: `SCRAMBLE #${PUZZLE_NUM}`, text }).catch(() => {});
+      } else {
+        navigator.clipboard.writeText(text).then(() => {
+          btn.textContent = 'Copied!';
+          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+        }).catch(() => {
+          btn.textContent = 'Copy failed';
+          setTimeout(() => { btn.textContent = 'Share result'; }, 2000);
+        });
+      }
+    });
+
+    // ── Countdown ─────────────────────────────────────────────────────────────
+    function updateCountdown() {
+      const now    = new Date();
+      const etNow  = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+      const target = new Date(etNow);
+      target.setHours(12, 0, 0, 0);
+      if (etNow >= target) target.setDate(target.getDate() + 1);
+      const diff = target - etNow;
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const str = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      document.querySelectorAll('#countdown').forEach(el => el.textContent = str);
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+
+    // ── Modals ─────────────────────────────────────────────────────────────────
+    const howToPlay = document.getElementById('how-to-play');
+    if (localStorage.getItem('scrambleSeen')) howToPlay.hidden = true;
+
+    function closeHTP() { howToPlay.hidden = true; localStorage.setItem('scrambleSeen', '1'); }
+    document.getElementById('modal-got-it').addEventListener('click', closeHTP);
+    document.getElementById('modal-close').addEventListener('click', closeHTP);
+    howToPlay.addEventListener('click', e => { if (e.target === howToPlay) closeHTP(); });
+    document.getElementById('info-btn').addEventListener('click', () => { howToPlay.hidden = false; });
+
+    const statsModal = document.getElementById('stats-modal');
+    document.getElementById('stats-btn').addEventListener('click', () => {
+      populateStatsModal();
+      statsModal.hidden = false;
+    });
+    document.getElementById('stats-close').addEventListener('click', () => { statsModal.hidden = true; });
+    statsModal.addEventListener('click', e => { if (e.target === statsModal) statsModal.hidden = true; });
+  </script>
+</body>
+</html>
