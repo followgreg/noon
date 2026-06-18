@@ -433,6 +433,76 @@
       text-align: center;
     }
 
+    /* ── How to play extras ── */
+    .modal-subhead {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .modal-italic {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .htp-example {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .htp-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .htp-arrow {
+      font-size: 1.1rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .htp-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 28px);
+      grid-template-rows: repeat(4, 28px);
+      gap: 3px;
+    }
+
+    .htp-cell {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .htp-cell.eg-solved {
+      background: var(--green);
+      border-color: var(--green);
+      color: #fff;
+    }
+
+    .htp-label {
+      font-size: 0.58rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
     @media (max-width: 360px) {
       :root { --cell: 60px; }
     }
@@ -443,13 +513,40 @@
   <!-- How to play -->
   <div class="modal-overlay" id="how-to-play">
     <div class="modal-card">
-      <button class="modal-close" id="modal-close">&#x2715;</button>
+      <button class="modal-close" id="modal-close" aria-label="Close">&#x2715;</button>
       <div class="modal-title">How to Play</div>
-      <div class="modal-line"><strong>Unscramble the word square.</strong></div>
-      <div class="modal-line">Every word must read the same across and down — tap any two tiles to swap them.</div>
-      <div class="modal-line"><strong>You have a set number of swaps.</strong> Use them all, then hit Submit. The number changes each day.</div>
-      <div class="modal-line">You'll see exactly how many swaps are needed. Plan your moves.</div>
-      <div class="modal-line">One puzzle per day. No retries.</div>
+      <div class="modal-subhead">Unscramble today's square.</div>
+      <div class="modal-italic">All 16 letters are already on the board.<br>They're just in the wrong order.</div>
+
+      <div class="htp-example">
+        <div class="htp-col">
+          <div class="htp-grid">
+            <div class="htp-cell">C</div><div class="htp-cell">A</div><div class="htp-cell">U</div><div class="htp-cell">M</div>
+            <div class="htp-cell">A</div><div class="htp-cell">Q</div><div class="htp-cell">E</div><div class="htp-cell">A</div>
+            <div class="htp-cell">L</div><div class="htp-cell">U</div><div class="htp-cell">K</div><div class="htp-cell">K</div>
+            <div class="htp-cell">M</div><div class="htp-cell">A</div><div class="htp-cell">C</div><div class="htp-cell">L</div>
+          </div>
+          <div class="htp-label">scrambled</div>
+        </div>
+        <div class="htp-arrow">→</div>
+        <div class="htp-col">
+          <div class="htp-grid">
+            <div class="htp-cell eg-solved">C</div><div class="htp-cell eg-solved">A</div><div class="htp-cell eg-solved">L</div><div class="htp-cell eg-solved">M</div>
+            <div class="htp-cell eg-solved">A</div><div class="htp-cell eg-solved">Q</div><div class="htp-cell eg-solved">U</div><div class="htp-cell eg-solved">A</div>
+            <div class="htp-cell eg-solved">L</div><div class="htp-cell eg-solved">U</div><div class="htp-cell eg-solved">C</div><div class="htp-cell eg-solved">K</div>
+            <div class="htp-cell eg-solved">M</div><div class="htp-cell eg-solved">A</div><div class="htp-cell eg-solved">K</div><div class="htp-cell eg-solved">E</div>
+          </div>
+          <div class="htp-label">solved</div>
+        </div>
+      </div>
+
+      <div class="modal-line"><strong>Tap a tile. Tap another. They swap.</strong></div>
+      <div class="modal-line">You get a set number of swaps each day — shown at the top. Use Undo to take one back before you submit.</div>
+      <div class="modal-line">No feedback as you go. You won't know if a swap is right until the end.</div>
+      <div class="modal-line">When you've used all your swaps, Submit locks it in.</div>
+      <div class="modal-line"><strong>Solved or not solved. One shot a day.</strong></div>
+      <div class="modal-line">A new SCRAMBLE drops every day at 12:00 PM ET.</div>
+
       <button class="modal-btn" id="modal-got-it">Got it</button>
     </div>
   </div>
