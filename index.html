@@ -834,6 +834,18 @@
 </head>
 <body>
 
+  <!-- App Store announcement modal -->
+  <div class="modal-overlay" id="appstore-modal" hidden>
+    <div class="modal-card" style="text-align:center;gap:20px;">
+      <button class="modal-close" id="appstore-close" aria-label="Close">&#x2715;</button>
+      <div class="modal-title">NOON is now on the App Store</div>
+      <p style="color:var(--muted);font-size:0.9rem;line-height:1.5;margin:0;">Play the daily word square on your iPhone — free, no ads.</p>
+      <a href="https://apps.apple.com/us/app/noon-daily-word-square/id6808773024" target="_blank" rel="noopener" style="display:inline-block;margin:0 auto;">
+        <img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/black/en-us?size=250x83" alt="Download on the App Store" style="height:48px;width:auto;display:block;">
+      </a>
+    </div>
+  </div>
+
   <!-- Settings modal -->
   <div class="modal-overlay" id="settings-modal" hidden>
     <div class="modal-card">
@@ -13613,6 +13625,16 @@
       hardMode = hardModeToggle.checked;
       localStorage.setItem('noonHardMode', hardMode ? 'true' : 'false');
     });
+
+    // ── App Store announcement modal ──
+    (function() {
+      const modal = document.getElementById('appstore-modal');
+      const closeBtn = document.getElementById('appstore-close');
+      modal.hidden = false;
+      function closeModal() { modal.hidden = true; }
+      closeBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', function(e) { if (e.target === modal) closeModal(); });
+    })();
 
     // ── Hard mode upsell button ──
     const upsellBtn = document.getElementById('hard-upsell-btn');
