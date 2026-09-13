@@ -1,0 +1,25 @@
+name: Daily Noon Push Notification
+
+on:
+  schedule:
+    # Runs at 08:00 UTC daily — before noon in every timezone
+    - cron: '0 8 * * *'
+  workflow_dispatch: # allow manual trigger for testing
+
+jobs:
+  send-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send daily NOON push
+        run: |
+          curl -s -X POST https://api.onesignal.com/notifications \
+            -H "Authorization: Key ${{ secrets.ONESIGNAL_REST_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "app_id": "de343796-5cdf-43bc-b890-3cd1c67d6d9d",
+              "included_segments": ["All"],
+              "headings": {"en": "NOON"},
+              "contents": {"en": "Today'\''s puzzle is ready. Can you solve it? 🟨"},
+              "delayed_option": "timezone",
+              "delivery_time_of_day": "12:00PM"
+            }'
